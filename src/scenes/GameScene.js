@@ -655,8 +655,13 @@ export class GameScene extends Phaser.Scene {
     this.saveScore(this.score);
     this.cameras.main.setAlpha(0.7);
     
-    this.input.keyboard.on('keydown-SPACE', () => {
+    // Add coins based on score (1 coin per 100 points)
+    const coinsEarned = Math.floor(this.score / 100);
+    this.addCoins(coinsEarned);
+    
+    this.input.keyboard.once('keydown-SPACE', () => {
       this.cameras.main.setAlpha(1);
+      this.scene.stop();
       this.scene.start('MenuScene');
     });
   }
@@ -770,6 +775,10 @@ export class GameScene extends Phaser.Scene {
         onComplete: () => particle.destroy()
       });
     }
+    // Destroy the actual object
+    if (obj && obj.destroy) {
+      obj.destroy();
+    }
   }
   
   saveScore(score) {
@@ -781,5 +790,15 @@ export class GameScene extends Phaser.Scene {
   getUnlockedShips() {
     const stored = localStorage.getItem('cosmicRunnerUnlockedShips');
     return stored ? JSON.parse(stored) : [true, false, false, false];
+  }
+  
+  addCoins(amount) {
+    const currentCoins = this.getPlayerCoins();
+    const newCoins = currentCoins + amount;
+    localStorage.setItem('cosmicRunnerCoins', newCoins.toString());
+  }
+  
+  getPlayerCoins() {
+    return parseInt(localStorage.getItem('cosmicRunnerCoins')) || 0;
   }
 }

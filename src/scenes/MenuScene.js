@@ -71,12 +71,15 @@ export class MenuScene extends Phaser.Scene {
     shopTitle.setOrigin(0.5);
     shopTitle.setDepth(10);
 
+    // Load unlocked ships from localStorage
+    const unlockedShips = JSON.parse(localStorage.getItem('cosmicRunnerUnlockedShips')) || [true, false, false, false];
+
     // Spaceship designs with purchase button
     this.spaceshipDesigns = [
-      { name: 'Starter', cost: 0, color: 0x00d4ff, unlocked: true },
-      { name: 'Phantom', cost: 500, color: 0xff00ff, unlocked: false },
-      { name: 'Inferno', cost: 1000, color: 0xffaa00, unlocked: false },
-      { name: 'Quantum', cost: 2000, color: 0x00ff88, unlocked: false }
+      { name: 'Starter', cost: 0, color: 0x00d4ff, unlocked: unlockedShips[0] },
+      { name: 'Phantom', cost: 500, color: 0xff00ff, unlocked: unlockedShips[1] },
+      { name: 'Inferno', cost: 1000, color: 0xffaa00, unlocked: unlockedShips[2] },
+      { name: 'Quantum', cost: 2000, color: 0x00ff88, unlocked: unlockedShips[3] }
     ];
 
     let shipX = 80;
@@ -108,10 +111,11 @@ export class MenuScene extends Phaser.Scene {
         });
         buttonText.setOrigin(0.5);
         buttonText.setInteractive({ useHandCursor: true });
-        buttonText.on('pointerdown', () => {
+        buttonText.once('pointerdown', () => {
           if (this.playerCoins >= design.cost) {
             this.playerCoins -= design.cost;
-            design.unlocked = true;
+            unlockedShips[i] = true;
+            localStorage.setItem('cosmicRunnerUnlockedShips', JSON.stringify(unlockedShips));
             this.savePlayerCoins(this.playerCoins);
             this.scene.restart();
           }
@@ -131,7 +135,8 @@ export class MenuScene extends Phaser.Scene {
     // Play Button
     const playButton = this.add.rectangle(this.gameWidth / 2, this.gameHeight - 80, 200, 60, 0x00ff88);
     playButton.setInteractive({ useHandCursor: true });
-    playButton.on('pointerdown', () => {
+     playButton.once('pointerdown', () => {
+      this.scene.stop();
       this.scene.start('GameScene');
     });
     playButton.on('pointerover', () => {
