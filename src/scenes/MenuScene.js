@@ -17,6 +17,9 @@ export class MenuScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#0a0e27');
     this.createStarfield();
 
+    // Initialize starting coins for first-time players
+    this.initializeStartingCoins();
+
     // Load game data
     this.highScores = this.getHighScores();
     this.playerCoins = this.getPlayerCoins();
@@ -155,11 +158,12 @@ export class MenuScene extends Phaser.Scene {
     const shipGridStartY = contentY + 80;
     const shipCardWidth = 110;
     const shipCardHeight = 160;
-    const shipSpacingX = 130;
+    const shipSpacingX = 140;
+    const totalWidth = shipSpacingX * 4;
 
     for (let i = 0; i < shipDesigns.length; i++) {
       const design = shipDesigns[i];
-      const shipX = shipGridStartX - shipSpacingX * 1.5 + i * shipSpacingX;
+      const shipX = shipGridStartX - totalWidth / 2 + shipSpacingX / 2 + i * shipSpacingX;
       const shipY = shipGridStartY;
       const isUnlocked = this.unlockedShips[i];
 
@@ -582,5 +586,14 @@ export class MenuScene extends Phaser.Scene {
   getPlayerShields() {
     const stored = localStorage.getItem('cosmicRunnerPlayerShields');
     return stored ? parseInt(stored) : 0;
+  }
+
+  initializeStartingCoins() {
+    const hasVisitedBefore = localStorage.getItem('cosmicRunnerVisited') === 'true';
+    if (!hasVisitedBefore) {
+      // First time player - give 500 starting coins
+      localStorage.setItem('cosmicRunnerCoins', '500');
+      localStorage.setItem('cosmicRunnerVisited', 'true');
+    }
   }
 }

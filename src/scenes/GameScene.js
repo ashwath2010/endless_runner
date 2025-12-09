@@ -437,116 +437,123 @@ export class GameScene extends Phaser.Scene {
   }
   
   drawClassicFighter(ship, primaryColor, secondaryColor) {
-    // Main fuselage
-    const body = this.add.polygon(0, 0, [-15, -18, 0, -28, 15, -18, 18, 12, 0, 20, -18, 12], 0x00d4ff);
-    body.setStrokeStyle(2, 0x00ffff);
+    // Create graphics to draw the ship
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
     
-    // Wings
-    const leftWing = this.add.polygon(-15, -8, [-28, -2, -22, 2], 0x0099ff);
-    leftWing.setStrokeStyle(1, 0x0099ff);
-    const rightWing = this.add.polygon(15, -8, [28, -2, 22, 2], 0x0099ff);
-    rightWing.setStrokeStyle(1, 0x0099ff);
+    graphics.fillStyle(0x00d4ff, 1);
+    graphics.beginPath();
+    graphics.moveTo(-15, -12);
+    graphics.lineTo(0, -20);
+    graphics.lineTo(15, -12);
+    graphics.lineTo(18, 8);
+    graphics.lineTo(0, 14);
+    graphics.lineTo(-18, 8);
+    graphics.closePath();
+    graphics.fillPath();
+    graphics.lineStyle(2, 0x00ffff, 1);
+    graphics.strokePath();
+
+    graphics.fillStyle(0xffff00, 1);
+    graphics.fillCircle(0, -14, 4);
+    graphics.fillStyle(0xff6600, 1);
+    graphics.fillRect(-5, 10, 2, 6);
+    graphics.fillRect(3, 10, 2, 6);
     
-    // Cockpit
-    const cockpit = this.add.circle(0, -16, 5, 0xffff00);
-    cockpit.setStrokeStyle(2, 0xffaa00);
-    const cockpitGlow = this.add.circle(0, -16, 2, 0xffffff);
-    cockpitGlow.setAlpha(0.8);
-    
-    // Engines with properly aligned gas tubes
-    const leftEngine = this.add.rectangle(-8, 16, 3, 6, 0xff6600);
-    const rightEngine = this.add.rectangle(8, 16, 3, 6, 0xff6600);
-    const engineGlow1 = this.add.circle(-8, 24, 3.5, 0xff9933);
-    engineGlow1.setAlpha(0.7);
-    const engineGlow2 = this.add.circle(8, 24, 3.5, 0xff9933);
-    engineGlow2.setAlpha(0.7);
-    
-    ship.add([body, leftWing, rightWing, cockpit, cockpitGlow, leftEngine, rightEngine, engineGlow1, engineGlow2]);
+    ship.add(graphics);
   }
   
   drawPhantomRacer(ship, primaryColor, secondaryColor) {
-    // Sleek body
-    const body = this.add.polygon(0, 0, [-12, -20, 0, -28, 12, -20, 16, 8, 0, 18, -16, 8], 0xff00ff);
-    body.setStrokeStyle(2, 0xff88ff);
+    // Create graphics to draw the ship
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
     
-    // Central stripe
-    const stripe = this.add.line(0, -28, 0, 18, 0xff88ff);
-    stripe.setLineWidth(3);
+    graphics.fillStyle(0xff00ff, 1);
+    graphics.beginPath();
+    graphics.moveTo(-12, -14);
+    graphics.lineTo(0, -20);
+    graphics.lineTo(12, -14);
+    graphics.lineTo(14, 6);
+    graphics.lineTo(0, 12);
+    graphics.lineTo(-14, 6);
+    graphics.closePath();
+    graphics.fillPath();
+    graphics.lineStyle(2, 0xff88ff, 1);
+    graphics.strokePath();
+
+    graphics.fillStyle(0x00ffff, 1);
+    graphics.fillCircle(0, -12, 3);
+    graphics.fillStyle(0xff6600, 1);
+    graphics.beginPath();
+    graphics.moveTo(-6, 12);
+    graphics.lineTo(6, 12);
+    graphics.lineTo(3, 16);
+    graphics.lineTo(-3, 16);
+    graphics.closePath();
+    graphics.fillPath();
     
-    // Side intakes
-    const leftIntake = this.add.polygon(-12, -8, [-22, 0, -16, 2], 0x00ffff);
-    const rightIntake = this.add.polygon(12, -8, [22, 0, 16, 2], 0x00ffff);
-    
-    // Cockpit
-    const cockpit = this.add.circle(0, -14, 4, 0x00ffff);
-    cockpit.setStrokeStyle(2, 0x00ffff);
-    
-    // Thruster
-    const thruster = this.add.polygon(0, 18, [-8, 18, -5, 24, 5, 24, 8, 18], 0xff6600);
-    
-    ship.add([body, stripe, leftIntake, rightIntake, cockpit, thruster]);
+    ship.add(graphics);
   }
   
   drawHeavyBomber(ship, primaryColor, secondaryColor) {
-    // Heavy body
-    const body = this.add.polygon(0, 0, [-18, -15, 0, -26, 18, -15, 20, 14, 0, 22, -20, 14], 0xffaa00);
-    body.setStrokeStyle(2, 0xffdd00);
+    // Create graphics to draw the ship
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
     
-    // Armor plating
-    const armor1 = this.add.line(-12, -8, -12, 12, 0xffdd00);
-    armor1.setLineWidth(1);
-    armor1.setAlpha(0.6);
-    const armor2 = this.add.line(12, -8, 12, 12, 0xffdd00);
-    armor2.setLineWidth(1);
-    armor2.setAlpha(0.6);
+    graphics.fillStyle(0xffaa00, 1);
+    graphics.beginPath();
+    graphics.moveTo(-14, -12);
+    graphics.lineTo(0, -20);
+    graphics.lineTo(14, -12);
+    graphics.lineTo(16, 8);
+    graphics.lineTo(0, 14);
+    graphics.lineTo(-16, 8);
+    graphics.closePath();
+    graphics.fillPath();
+    graphics.lineStyle(2, 0xffdd00, 1);
+    graphics.strokePath();
+
+    graphics.fillStyle(0xffff00, 1);
+    graphics.fillCircle(0, -12, 4);
+    graphics.fillStyle(0xff3333, 1);
+    graphics.fillRect(-8, 4, 3, 6);
+    graphics.fillRect(5, 4, 3, 6);
+    graphics.fillStyle(0xff6600, 1);
+    graphics.fillRect(-5, 10, 2, 5);
+    graphics.fillRect(0, 10, 2, 5);
+    graphics.fillRect(3, 10, 2, 5);
     
-    // Cockpit
-    const cockpit = this.add.circle(0, -12, 5, 0xffff00);
-    cockpit.setStrokeStyle(2, 0xffdd00);
-    
-    // Weapon pods
-    const weapon1 = this.add.rectangle(-10, 8, 4, 8, 0xff3333);
-    const weapon2 = this.add.rectangle(6, 8, 4, 8, 0xff3333);
-    
-    // Triple engines
-    const engine1 = this.add.rectangle(-7, 17, 3, 7, 0xff6600);
-    const engine2 = this.add.rectangle(0, 17, 3, 7, 0xff6600);
-    const engine3 = this.add.rectangle(4, 17, 3, 7, 0xff6600);
-    const engineGlow1 = this.add.circle(-5.5, 24, 3, 0xff9933);
-    engineGlow1.setAlpha(0.7);
-    const engineGlow2 = this.add.circle(1.5, 24, 3, 0xff9933);
-    engineGlow2.setAlpha(0.7);
-    const engineGlow3 = this.add.circle(5.5, 24, 3, 0xff9933);
-    engineGlow3.setAlpha(0.7);
-    
-    ship.add([body, armor1, armor2, cockpit, weapon1, weapon2, engine1, engine2, engine3, engineGlow1, engineGlow2, engineGlow3]);
+    ship.add(graphics);
   }
   
   drawQuantumShip(ship, primaryColor, secondaryColor) {
-    // Main body
-    const body = this.add.polygon(0, 0, [-14, -18, 0, -26, 14, -18, 17, 10, 0, 20, -17, 10], 0x00ff88);
-    body.setStrokeStyle(2, 0x00ffaa);
+    // Create graphics to draw the ship
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
     
-    // Energy rings
-    const ring1 = this.add.circle(0, 0, 18, undefined, 0);
-    ring1.setStrokeStyle(2, 0x00ffaa);
-    ring1.setAlpha(0.6);
-    const ring2 = this.add.circle(0, 0, 12, undefined, 0);
-    ring2.setStrokeStyle(2, 0x00ffaa);
-    ring2.setAlpha(0.4);
+    graphics.fillStyle(0x00ff88, 1);
+    graphics.beginPath();
+    graphics.moveTo(-12, -14);
+    graphics.lineTo(0, -20);
+    graphics.lineTo(12, -14);
+    graphics.lineTo(14, 6);
+    graphics.lineTo(0, 12);
+    graphics.lineTo(-14, 6);
+    graphics.closePath();
+    graphics.fillPath();
+    graphics.lineStyle(2, 0x00ffaa, 1);
+    graphics.strokePath();
+
+    graphics.lineStyle(1, 0x00ffaa, 0.4);
+    graphics.strokeCircle(0, 0, 14);
+    graphics.fillStyle(0x00ffff, 1);
+    graphics.fillCircle(0, -10, 3);
+    graphics.fillStyle(0xff6600, 1);
+    graphics.beginPath();
+    graphics.moveTo(-5, 12);
+    graphics.lineTo(5, 12);
+    graphics.lineTo(3, 16);
+    graphics.lineTo(-3, 16);
+    graphics.closePath();
+    graphics.fillPath();
     
-    // Quantum core
-    const core = this.add.circle(0, -12, 4, 0x00ffff);
-    core.setStrokeStyle(2, 0xffffff);
-    const coreGlow = this.add.circle(0, -12, 2, 0xffffff);
-    coreGlow.setAlpha(0.7);
-    
-    // Main engine
-    const engine = this.add.polygon(0, 18, [-7, 18, -5, 24, 5, 24, 7, 18], 0x00ff88);
-    const engineGlow = this.add.circle(0, 24, 2, 0x00ffaa);
-    engineGlow.setAlpha(0.8);
-    
-    ship.add([body, ring1, ring2, core, coreGlow, engine, engineGlow]);
+    ship.add(graphics);
   }
   
   createAdvancedRock(x, y) {
