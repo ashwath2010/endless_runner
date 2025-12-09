@@ -27,7 +27,7 @@ export class GameScene extends Phaser.Scene {
     
     // Get unlocked ships
     this.unlockedShips = this.getUnlockedShips();
-    this.currentShipDesign = 0;
+    this.currentShipDesign = parseInt(localStorage.getItem('cosmicRunnerSelectedShip')) || 0;
     
     // Player setup
     this.playerSize = 40;
@@ -44,6 +44,9 @@ export class GameScene extends Phaser.Scene {
       gunCooldown: 0
     };
     this.bullets = [];
+    
+    // Enemy bullets
+    this.enemyBullets = [];
     
     // Obstacles
     this.obstacles = [];
@@ -305,6 +308,30 @@ export class GameScene extends Phaser.Scene {
         this.enemies.splice(i, 1);
         this.score += 50;
         this.scoreText.setText('Score: ' + this.score);
+      }
+    }
+    
+    // Update enemy bullets
+    for (let i = this.enemyBullets.length - 1; i >= 0; i--) {
+      const bullet = this.enemyBullets[i];
+      bullet.y += 400 * delta / 1000; // Enemy bullets move downward
+      
+      // Check collision with player
+      if (this.checkCollision(bullet, this.player, 20)) {
+        if (this.powerups.shield) {
+          bullet.destroy();
+          this.enemyBullets.splice(i, 1);
+          this.powerups.shield = false;
+        } else {
+          this.endGame();
+          return;
+        }
+      }
+      
+      // Remove bullet if off screen
+      if (bullet.y > this.gameHeight) {
+        bullet.destroy();
+        this.enemyBullets.splice(i, 1);
       }
     }
     
@@ -848,6 +875,9 @@ export class GameScene extends Phaser.Scene {
     const bullet = this.add.rectangle(bulletX, bulletY, 4, 12, 0xff3333);
     bullet.setStrokeStyle(1, 0xff0000);
     bullet.setDepth(8);
+    
+    // Track enemy bullets
+    this.enemyBullets.push(bullet);
   }
   
   destroyWithEffect(obj) {

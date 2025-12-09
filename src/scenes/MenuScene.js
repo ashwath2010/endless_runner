@@ -155,15 +155,15 @@ export class MenuScene extends Phaser.Scene {
     ];
 
     const shipGridStartX = this.gameWidth / 2;
-    const shipGridStartY = contentY + 80;
-    const shipCardWidth = 110;
-    const shipCardHeight = 160;
-    const shipSpacingX = 140;
-    const totalWidth = shipSpacingX * 4;
+    const shipGridStartY = contentY + 90;
+    const shipCardWidth = 100;
+    const shipCardHeight = 170;
+    const shipSpacingX = 130;
+    const totalWidth = (shipSpacingX * 4) - 30;
 
     for (let i = 0; i < shipDesigns.length; i++) {
       const design = shipDesigns[i];
-      const shipX = shipGridStartX - totalWidth / 2 + shipSpacingX / 2 + i * shipSpacingX;
+      const shipX = shipGridStartX - totalWidth / 2 + shipSpacingX * 0.5 + i * shipSpacingX;
       const shipY = shipGridStartY;
       const isUnlocked = this.unlockedShips[i];
 
@@ -218,10 +218,11 @@ export class MenuScene extends Phaser.Scene {
         shopItems.push(cardBg, nameText, buyBtn, buyText);
       } else {
         const ownedBg = this.add.rectangle(shipX, shipY + 48, 90, 25, 0x00aa00);
+        ownedBg.setInteractive({ useHandCursor: true });
         ownedBg.setDepth(9);
         ownedBg.setVisible(false);
 
-        const ownedText = this.add.text(shipX, shipY + 48, '✓ OWNED', {
+        const ownedText = this.add.text(shipX, shipY + 48, '✓ SELECT', {
           fontSize: '9px',
           fill: '#ffffff',
           fontStyle: 'bold'
@@ -230,6 +231,15 @@ export class MenuScene extends Phaser.Scene {
         ownedText.setDepth(10);
         ownedText.setVisible(false);
 
+        const menuScene = this;
+        const handleSelect = () => {
+          menuScene.selectShip(i, design.name);
+        };
+
+        ownedBg.on('pointerdown', handleSelect);
+        ownedBg.on('pointerover', () => ownedBg.setScale(1.05));
+        ownedBg.on('pointerout', () => ownedBg.setScale(1));
+
         shopItems.push(cardBg, nameText, ownedBg, ownedText);
       }
     }
@@ -237,7 +247,7 @@ export class MenuScene extends Phaser.Scene {
     // SHIELDS (hidden by default)
     const shieldCost = 100;
     const shieldX = this.gameWidth / 2;
-    const shieldY = contentY + 310;
+    const shieldY = contentY + 330;
 
     const shieldCardBg = this.add.rectangle(shieldX, shieldY, 110, 140, 0x1a1a2e);
     shieldCardBg.setStrokeStyle(2, 0x00ff88);
@@ -595,5 +605,30 @@ export class MenuScene extends Phaser.Scene {
       localStorage.setItem('cosmicRunnerCoins', '500');
       localStorage.setItem('cosmicRunnerVisited', 'true');
     }
+  }
+
+  selectShip(shipIndex, shipName) {
+    localStorage.setItem('cosmicRunnerSelectedShip', shipIndex.toString());
+    
+    const msg = this.add.text(this.gameWidth / 2, 100, `✓ ${shipName} Selected!`, {
+      fontSize: '28px',
+      fill: '#00ff88',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 2
+    });
+    msg.setOrigin(0.5);
+    msg.setDepth(30);
+    msg.setAlpha(0);
+
+    this.tweens.add({
+      targets: msg,
+      alpha: 1,
+      duration: 200
+    });
+
+    this.time.delayedCall(800, () => {
+      this.scene.restart();
+    });
   }
 }
