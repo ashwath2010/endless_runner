@@ -14,29 +14,22 @@ export class GameScene extends Phaser.Scene {
     this.gameWidth = this.cameras.main.width;
     this.gameHeight = this.cameras.main.height;
     
-    // Set background with gradient effect
+    // Set background
     this.cameras.main.setBackgroundColor('#0a0e27');
-    
-    // Add starfield background
     this.createStarfield();
     
     this.score = 0;
     this.gameActive = true;
     this.difficultyMultiplier = 1;
     
-    // Spaceship design system
-    this.spaceshipDesigns = [
-      { name: 'Starter', cost: 0, color: 0x00d4ff, unlocked: true },
-      { name: 'Sleek', cost: 500, color: 0xff00ff, unlocked: false },
-      { name: 'Heavy', cost: 1000, color: 0xffaa00, unlocked: false },
-      { name: 'Phantom', cost: 2000, color: 0x00ff88, unlocked: false }
-    ];
+    // Get unlocked ships
+    this.unlockedShips = this.getUnlockedShips();
     this.currentShipDesign = 0;
     
-    // Player setup - Spaceship
+    // Player setup
     this.playerSize = 40;
-    this.playerLane = 1; // 0: left, 1: center, 2: right
-    this.player = this.createSpaceship(this.getLaneX(1), this.gameHeight - 100, this.currentShipDesign);
+    this.playerLane = 1;
+    this.player = this.createAdvancedSpaceship(this.getLaneX(1), this.gameHeight - 100, this.currentShipDesign);
     this.player.setDepth(10);
     
     // Powerup system
@@ -49,20 +42,20 @@ export class GameScene extends Phaser.Scene {
     };
     this.bullets = [];
     
-    // Obstacles array (rocks)
+    // Obstacles
     this.obstacles = [];
     this.obstacleSpeed = 300;
-    this.spawnRate = 1500; // ms between spawns
+    this.spawnRate = 1500;
     this.spawnTimer = 0;
     
-    // Enemy spaceships
+    // Enemies
     this.enemies = [];
-    this.enemySpawnRate = 8000; // ms between spawns
+    this.enemySpawnRate = 8000;
     this.enemySpawnTimer = 0;
     
-    // Collectibles (bonus items)
+    // Collectibles
     this.collectibles = [];
-    this.collectibleSpawnRate = 4000; // ms between spawns
+    this.collectibleSpawnRate = 4000;
     this.collectibleSpawnTimer = 0;
     
     // Powerups
@@ -77,7 +70,7 @@ export class GameScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-LEFT', () => this.moveLeft());
     this.input.keyboard.on('keydown-RIGHT', () => this.moveRight());
     
-    // Touch input (swipe detection)
+    // Touch input
     this.touchStartX = 0;
     this.touchStartY = 0;
     
@@ -100,7 +93,7 @@ export class GameScene extends Phaser.Scene {
       }
     });
     
-    // UI setup
+    // UI
     this.scoreText = this.add.text(20, 20, 'Score: 0', {
       fontSize: '32px',
       fill: '#00ff88',
@@ -119,23 +112,11 @@ export class GameScene extends Phaser.Scene {
     });
     this.powerupText.setDepth(20);
     
-    this.shipDesignText = this.add.text(this.gameWidth - 200, 20, '', {
-      fontSize: '14px',
-      fill: '#00ff88',
-      fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 2
-    });
-    this.shipDesignText.setOrigin(1, 0);
-    this.shipDesignText.setDepth(20);
-    this.updateShipDesignDisplay();
-    
-    // Shield visual indicator (proper sphere around spaceship)
     this.shieldGraphic = this.make.graphics({ x: 0, y: 0, add: true });
     this.shieldGraphic.setDepth(9);
     this.shieldGraphic.setVisible(false);
     
-    this.gameOverText = this.add.text(this.gameWidth / 2, this.gameHeight / 2 - 50, '', {
+    this.gameOverText = this.add.text(this.gameWidth / 2, this.gameHeight / 2 - 80, '', {
       fontSize: '64px',
       fill: '#ff0000',
       fontStyle: 'bold',
@@ -147,7 +128,7 @@ export class GameScene extends Phaser.Scene {
     this.gameOverText.setDepth(30);
     this.gameOverText.setVisible(false);
     
-    this.restartText = this.add.text(this.gameWidth / 2, this.gameHeight / 2 + 50, '', {
+    this.restartText = this.add.text(this.gameWidth / 2, this.gameHeight / 2 + 30, '', {
       fontSize: '24px',
       fill: '#ffff00',
       align: 'center',
@@ -157,62 +138,44 @@ export class GameScene extends Phaser.Scene {
     this.restartText.setOrigin(0.5);
     this.restartText.setDepth(30);
     this.restartText.setVisible(false);
-    
-    this.instructionText = this.add.text(this.gameWidth / 2, this.gameHeight - 30, 'Use Arrow Keys or Swipe to Move | Collect Stars & Powerups', {
-      fontSize: '14px',
-      fill: '#888888',
-      align: 'center'
-    });
-    this.instructionText.setOrigin(0.5);
-    this.instructionText.setDepth(10);
   }
 
   update(time, delta) {
-    if (!this.gameActive) {
-      return;
-    }
+    if (!this.gameActive) return;
 
-    // Update powerups and shield visual
     this.updatePowerups(delta);
     this.updateShieldVisual();
     
-    // Spawn obstacles
     this.spawnTimer += delta;
     if (this.spawnTimer >= this.spawnRate) {
       this.spawnObstacle();
       this.spawnTimer = 0;
-      
-      // Increase difficulty over time
       if (this.score % 500 === 0 && this.score > 0) {
         this.obstacleSpeed = Math.min(this.obstacleSpeed + 30, 600);
         this.spawnRate = Math.max(this.spawnRate - 50, 800);
       }
     }
     
-    // Spawn enemy spaceships
     this.enemySpawnTimer += delta;
     if (this.enemySpawnTimer >= this.enemySpawnRate) {
-      if (Phaser.Math.Between(0, 100) > 40) { // 60% chance
+      if (Phaser.Math.Between(0, 100) > 40) {
         this.spawnEnemySpaceship();
       }
       this.enemySpawnTimer = 0;
     }
     
-    // Spawn collectibles
     this.collectibleSpawnTimer += delta;
     if (this.collectibleSpawnTimer >= this.collectibleSpawnRate) {
       this.spawnCollectible();
       this.collectibleSpawnTimer = 0;
     }
     
-    // Spawn powerups
     this.powerupSpawnTimer += delta;
     if (this.powerupSpawnTimer >= this.powerupSpawnRate) {
       this.spawnPowerup();
       this.powerupSpawnTimer = 0;
     }
     
-    // Fire bullets automatically when guns active
     if (this.powerups.guns) {
       this.powerups.gunCooldown -= delta;
       if (this.powerups.gunCooldown <= 0) {
@@ -225,7 +188,6 @@ export class GameScene extends Phaser.Scene {
     for (let i = this.bullets.length - 1; i >= 0; i--) {
       const bullet = this.bullets[i];
       bullet.y -= 400 * delta / 1000;
-      
       if (bullet.y < 0) {
         bullet.destroy();
         this.bullets.splice(i, 1);
@@ -237,11 +199,10 @@ export class GameScene extends Phaser.Scene {
       const obstacle = this.obstacles[i];
       obstacle.y += (this.obstacleSpeed * this.difficultyMultiplier) * delta / 1000;
 
-      // Check if bullets hit obstacle
       for (let j = this.bullets.length - 1; j >= 0; j--) {
         const bullet = this.bullets[j];
         if (this.checkCollision(bullet, obstacle, 20)) {
-          obstacle.destroy();
+          this.destroyWithEffect(obstacle);
           this.obstacles.splice(i, 1);
           bullet.destroy();
           this.bullets.splice(j, 1);
@@ -251,10 +212,9 @@ export class GameScene extends Phaser.Scene {
         }
       }
 
-      // Check collision with player
       if (this.checkCollision(this.player, obstacle, 30)) {
         if (this.powerups.shield) {
-          obstacle.destroy();
+          this.destroyWithEffect(obstacle);
           this.obstacles.splice(i, 1);
           this.powerups.shield = false;
         } else {
@@ -263,7 +223,6 @@ export class GameScene extends Phaser.Scene {
         }
       }
 
-      // Remove obstacle if off-screen
       if (obstacle.y > this.gameHeight) {
         obstacle.destroy();
         this.obstacles.splice(i, 1);
@@ -272,35 +231,32 @@ export class GameScene extends Phaser.Scene {
       }
     }
     
-    // Update enemy spaceships
+    // Update enemies
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
       enemy.y += (this.obstacleSpeed * this.difficultyMultiplier) * delta / 1000;
       
-      // Enemy shoots randomly
-      if (Phaser.Math.Between(0, 100) > 95) {
+      if (Phaser.Math.Between(0, 100) > 94) {
         this.enemyShoot(enemy);
       }
 
-      // Check if bullets hit enemy
       for (let j = this.bullets.length - 1; j >= 0; j--) {
         const bullet = this.bullets[j];
         if (this.checkCollision(bullet, enemy, 25)) {
-          enemy.destroy();
+          this.destroyWithEffect(enemy);
           this.enemies.splice(i, 1);
           bullet.destroy();
           this.bullets.splice(j, 1);
-          this.score += 100; // Big reward for destroying enemies
+          this.score += 100;
           this.scoreText.setText('Score: ' + this.score);
           this.showPowerupMessage('ENEMY DESTROYED!', '#ff00ff');
           break;
         }
       }
 
-      // Check collision with player
       if (this.checkCollision(this.player, enemy, 35)) {
         if (this.powerups.shield) {
-          enemy.destroy();
+          this.destroyWithEffect(enemy);
           this.enemies.splice(i, 1);
           this.powerups.shield = false;
         } else {
@@ -309,11 +265,10 @@ export class GameScene extends Phaser.Scene {
         }
       }
 
-      // Remove enemy if off-screen
       if (enemy.y > this.gameHeight) {
         enemy.destroy();
         this.enemies.splice(i, 1);
-        this.score += 50; // Reward for surviving enemy encounter
+        this.score += 50;
         this.scoreText.setText('Score: ' + this.score);
       }
     }
@@ -322,11 +277,8 @@ export class GameScene extends Phaser.Scene {
     for (let i = this.collectibles.length - 1; i >= 0; i--) {
       const collectible = this.collectibles[i];
       collectible.y += (this.obstacleSpeed * this.difficultyMultiplier) * delta / 1000;
-      
-      // Spinning animation
       collectible.rotation += 0.05;
 
-      // Check collision with player
       if (this.checkCollision(this.player, collectible, 20)) {
         this.score += 50;
         this.scoreText.setText('Score: ' + this.score);
@@ -334,29 +286,24 @@ export class GameScene extends Phaser.Scene {
         this.collectibles.splice(i, 1);
       }
 
-      // Remove if off-screen
       if (collectible.y > this.gameHeight) {
         collectible.destroy();
         this.collectibles.splice(i, 1);
       }
     }
     
-    // Update powerup items
+    // Update powerups
     for (let i = this.powerupItems.length - 1; i >= 0; i--) {
       const powerupItem = this.powerupItems[i];
       powerupItem.y += (this.obstacleSpeed * this.difficultyMultiplier) * delta / 1000;
-      
-      // Pulsing animation
       powerupItem.scale = 1 + Math.sin(time / 200) * 0.2;
 
-      // Check collision with player
       if (this.checkCollision(this.player, powerupItem, 25)) {
         this.activatePowerup(powerupItem.powerupType);
         powerupItem.destroy();
         this.powerupItems.splice(i, 1);
       }
 
-      // Remove if off-screen
       if (powerupItem.y > this.gameHeight) {
         powerupItem.destroy();
         this.powerupItems.splice(i, 1);
@@ -379,12 +326,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   moveUp() {
-    // Bonus: move up for more score or temporary invincibility
     if (this.player.y > 100) {
       this.player.y -= 40;
       this.tweens.add({
         targets: this.player,
-        y: this.gameHeight - 80,
+        y: this.gameHeight - 100,
         duration: 300,
         ease: 'Linear'
       });
@@ -392,7 +338,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   moveDown() {
-    // Move down slightly for evasion
     if (this.player.y < this.gameHeight - 40) {
       this.player.y += 20;
     }
@@ -419,14 +364,14 @@ export class GameScene extends Phaser.Scene {
   spawnObstacle() {
     const lanePositions = this.getLanePositions();
     const lane = Phaser.Math.Between(0, 2);
-    const obstacle = this.createRock(lanePositions[lane], -40);
+    const obstacle = this.createAdvancedRock(lanePositions[lane], -40);
     this.obstacles.push(obstacle);
   }
   
   spawnCollectible() {
     const lanePositions = this.getLanePositions();
     const lane = Phaser.Math.Between(0, 2);
-    const collectible = this.createStar(lanePositions[lane], -30);
+    const collectible = this.createAdvancedStar(lanePositions[lane], -30);
     this.collectibles.push(collectible);
   }
   
@@ -434,74 +379,124 @@ export class GameScene extends Phaser.Scene {
     const lanePositions = this.getLanePositions();
     const lane = Phaser.Math.Between(0, 2);
     const powerupType = Phaser.Math.RND.pick(['shield', 'guns']);
-    const powerup = this.createPowerupItem(lanePositions[lane], -30, powerupType);
+    const powerup = this.createAdvancedPowerupItem(lanePositions[lane], -30, powerupType);
     this.powerupItems.push(powerup);
   }
   
-  createSpaceship(x, y) {
+  createAdvancedSpaceship(x, y, designIndex = 0) {
     const ship = this.add.container(x, y);
     
-    // Main body - sleek design
-    const bodyPoints = [0, -20, 18, 10, 12, 18, -12, 18, -18, 10];
-    const body = this.add.polygon(0, 0, bodyPoints, 0x00d4ff);
-    body.setStrokeStyle(2, 0x00ffff);
+    if (designIndex === 0) {
+      this.drawClassicFighter(ship, 0x00d4ff, 0x00ffff);
+    } else if (designIndex === 1) {
+      this.drawPhantomRacer(ship, 0xff00ff, 0xff88ff);
+    } else if (designIndex === 2) {
+      this.drawHeavyBomber(ship, 0xffaa00, 0xffdd00);
+    } else if (designIndex === 3) {
+      this.drawQuantumShip(ship, 0x00ff88, 0x00ffaa);
+    }
     
-    // Cockpit - advanced design
-    const cockpit = this.add.circle(0, -8, 5, 0xffff00);
-    cockpit.setStrokeStyle(2, 0xffaa00);
-    
-    // Inner cockpit glow
-    const cockpitGlow = this.add.circle(0, -8, 3, 0xffff88);
-    
-    // Side wings with gradient effect
-    const leftWing = this.add.triangle(-12, 8, -18, 8, -15, 12, -12, 8, 0x0099ff);
-    const rightWing = this.add.triangle(12, 8, 18, 8, 15, 12, 12, 8, 0x0099ff);
-    leftWing.setStrokeStyle(1, 0x00ffff);
-    rightWing.setStrokeStyle(1, 0x00ffff);
-    
-    // Engine flame
-    const flame = this.createFlame();
-    flame.name = 'flame';
-    
-    // Shield holder (for when shield is active)
-    ship.add([body, leftWing, rightWing, cockpitGlow, cockpit, flame]);
     ship.setDepth(10);
+    ship.designIndex = designIndex;
     return ship;
   }
   
-  createFlame() {
-    const flame = this.add.container(0, 15);
+  drawClassicFighter(ship, primaryColor, secondaryColor) {
+    const body = this.add.polygon(0, 0, [0, -22, 20, 10, 14, 20, -14, 20, -20, 10], primaryColor);
+    body.setStrokeStyle(2, secondaryColor);
     
-    // Main flame
-    const flameBody = this.add.polygon(0, 0, [0, -8, 6, 8, 0, 12, -6, 8], 0xff6600);
-    flameBody.setStrokeStyle(1, 0xffaa00);
+    const cockpit = this.add.circle(0, -12, 6, 0xffff00);
+    cockpit.setStrokeStyle(2, 0xffaa00);
+    const cockpitGlow = this.add.circle(0, -12, 3, 0xffffff);
+    cockpitGlow.setAlpha(0.8);
     
-    // Glow effect
-    const flameGlow = this.add.circle(0, 4, 5, 0xffaa00);
-    flameGlow.setAlpha(0.6);
+    const leftWing = this.add.polygon(-15, 5, [-24, 5, -20, 8, -18, 6], 0x0099ff);
+    const rightWing = this.add.polygon(15, 5, [24, 5, 20, 8, 18, 6], 0x0099ff);
     
-    flame.add([flameGlow, flameBody]);
-    return flame;
+    const leftEngine = this.add.rectangle(-8, 18, 4, 8, 0xff6600);
+    const rightEngine = this.add.rectangle(8, 18, 4, 8, 0xff6600);
+    const engineGlow1 = this.add.circle(-8, 22, 4, 0xffaa00);
+    const engineGlow2 = this.add.circle(8, 22, 4, 0xffaa00);
+    engineGlow1.setAlpha(0.6);
+    engineGlow2.setAlpha(0.6);
+    
+    ship.add([body, leftWing, rightWing, cockpitGlow, cockpit, leftEngine, rightEngine, engineGlow1, engineGlow2]);
   }
   
-  createRock(x, y) {
+  drawPhantomRacer(ship, primaryColor, secondaryColor) {
+    const body = this.add.polygon(0, 0, [0, -24, 18, -5, 16, 18, -16, 18, -18, -5], primaryColor);
+    body.setStrokeStyle(3, secondaryColor);
+    
+    const stripe = this.add.rectangle(0, 0, 6, 28, undefined, 0);
+    stripe.setStrokeStyle(2, secondaryColor);
+    
+    const cockpit = this.add.circle(0, -15, 5, 0x00ffff);
+    cockpit.setStrokeStyle(2, 0x00ff88);
+    
+    const leftIntake = this.add.polygon(-14, -2, [-20, -4, -18, 2, -12, 0], 0x00ffff);
+    const rightIntake = this.add.polygon(14, -2, [20, -4, 18, 2, 12, 0], 0x00ffff);
+    
+    const thruster = this.add.polygon(0, 20, [0, 18, 8, 24, 0, 26, -8, 24], 0xff6600);
+    
+    ship.add([body, stripe, leftIntake, rightIntake, cockpit, thruster]);
+  }
+  
+  drawHeavyBomber(ship, primaryColor, secondaryColor) {
+    const body = this.add.polygon(0, 0, [0, -20, 22, 8, 18, 22, -18, 22, -22, 8], primaryColor);
+    body.setStrokeStyle(3, secondaryColor);
+    
+    const cockpit = this.add.circle(0, -10, 7, 0xffff00);
+    cockpit.setStrokeStyle(2, 0xffaa00);
+    
+    const armor1 = this.add.rectangle(-10, 5, 6, 12, undefined, 0);
+    armor1.setStrokeStyle(2, secondaryColor);
+    const armor2 = this.add.rectangle(10, 5, 6, 12, undefined, 0);
+    armor2.setStrokeStyle(2, secondaryColor);
+    
+    const weapon1 = this.add.rectangle(-12, 15, 5, 8, 0xff0000);
+    const weapon2 = this.add.rectangle(12, 15, 5, 8, 0xff0000);
+    
+    const engine1 = this.add.rectangle(-8, 20, 4, 6, 0xff6600);
+    const engine2 = this.add.rectangle(0, 20, 4, 6, 0xff6600);
+    const engine3 = this.add.rectangle(8, 20, 4, 6, 0xff6600);
+    
+    ship.add([body, armor1, armor2, cockpit, weapon1, weapon2, engine1, engine2, engine3]);
+  }
+  
+  drawQuantumShip(ship, primaryColor, secondaryColor) {
+    const body = this.add.polygon(0, 0, [0, -22, 16, -8, 18, 10, 12, 20, -12, 20, -18, 10, -16, -8], primaryColor);
+    body.setStrokeStyle(2, secondaryColor);
+    body.setAlpha(0.95);
+    
+    const ring = this.add.circle(0, 0, 20, undefined, 0);
+    ring.setStrokeStyle(2, secondaryColor);
+    ring.setAlpha(0.5);
+    
+    const core = this.add.circle(0, -8, 4, 0x00ffff);
+    core.setStrokeStyle(2, 0xffffff);
+    
+    const engine = this.add.circle(0, 18, 6, undefined, 0);
+    engine.setStrokeStyle(2, 0x00ff88);
+    const engineCore = this.add.circle(0, 18, 3, 0x00ff88);
+    
+    ship.add([body, ring, core, engine, engineCore]);
+  }
+  
+  createAdvancedRock(x, y) {
     const rock = this.add.container(x, y);
     
-    // Multiple layers for 3D effect
     const rockBody = this.add.polygon(0, 0, [
-      -15, -10, -10, -18, 8, -15, 18, -8, 18, 8, 10, 18, -8, 18, -15, 10
-    ], 0x8b7355);
-    rockBody.setStrokeStyle(2, 0x654321);
+      -16, -12, -10, -20, 10, -18, 20, -8, 20, 10, 12, 20, -10, 22, -18, 12
+    ], 0x8b6f47);
+    rockBody.setStrokeStyle(2, 0x5c4c33);
     
-    // Add highlights for dimension
-    const highlight1 = this.add.polygon(-5, -8, [-3, -12, 5, -10, 2, -5], 0xb8956a);
-    highlight1.setAlpha(0.7);
+    const highlight1 = this.add.polygon(-6, -10, [-2, -16, 6, -14, 2, -6], 0xc9a876);
+    highlight1.setAlpha(0.8);
     
-    const highlight2 = this.add.polygon(8, 5, [8, 2, 15, 5, 12, 10], 0x9d7e5d);
+    const highlight2 = this.add.polygon(10, 5, [10, 2, 18, 8, 14, 12], 0xb8956a);
     highlight2.setAlpha(0.6);
     
-    // Shadow
-    const shadow = this.add.polygon(2, 10, [2, 10, 12, 12, 5, 16], 0x5c4033);
+    const shadow = this.add.polygon(-2, 15, [-2, 15, 8, 18, 2, 22], 0x4a3928);
     shadow.setAlpha(0.5);
     
     rock.add([shadow, rockBody, highlight1, highlight2]);
@@ -510,17 +505,15 @@ export class GameScene extends Phaser.Scene {
     return rock;
   }
   
-  createStar(x, y) {
+  createAdvancedStar(x, y) {
     const star = this.add.container(x, y);
     
-    // Outer glow
-    const glow = this.add.circle(0, 0, 16, 0xffff88);
-    glow.setAlpha(0.4);
+    const outerGlow = this.add.circle(0, 0, 18, 0xffff88);
+    outerGlow.setAlpha(0.3);
     
-    // Draw star
     const points = [];
     for (let i = 0; i < 10; i++) {
-      const radius = i % 2 === 0 ? 12 : 6;
+      const radius = i % 2 === 0 ? 13 : 7;
       const angle = (i * Math.PI) / 5 - Math.PI / 2;
       points.push(radius * Math.cos(angle), radius * Math.sin(angle));
     }
@@ -528,54 +521,51 @@ export class GameScene extends Phaser.Scene {
     const starShape = this.add.polygon(0, 0, points, 0xffff00);
     starShape.setStrokeStyle(2, 0xffaa00);
     
-    // Inner glow
-    const innerGlow = this.add.circle(0, 0, 8, 0xffff88);
-    innerGlow.setAlpha(0.5);
+    const innerGlow = this.add.circle(0, 0, 9, 0xffffff);
+    innerGlow.setAlpha(0.4);
     
-    star.add([glow, starShape, innerGlow]);
-    
+    star.add([outerGlow, starShape, innerGlow]);
     star.setDepth(5);
     return star;
   }
   
-  createPowerupItem(x, y, type) {
+  createAdvancedPowerupItem(x, y, type) {
     const powerupItem = this.add.container(x, y);
     powerupItem.powerupType = type;
     
     if (type === 'shield') {
-      // Shield powerup - sophisticated design
-      const outerRing = this.add.circle(0, 0, 18, 0x00ff00);
-      outerRing.setFillStyle(undefined, 0);
+      const outerRing = this.add.circle(0, 0, 20, undefined, 0);
       outerRing.setStrokeStyle(3, 0x00ff00);
       
-      const innerRing = this.add.circle(0, 0, 12, 0x00ff00);
-      innerRing.setFillStyle(undefined, 0);
+      const middleRing = this.add.circle(0, 0, 14, undefined, 0);
+      middleRing.setStrokeStyle(2, 0x00ff00);
+      middleRing.setAlpha(0.7);
+      
+      const innerRing = this.add.circle(0, 0, 8, undefined, 0);
       innerRing.setStrokeStyle(2, 0x00ff00);
-      innerRing.setAlpha(0.7);
+      innerRing.setAlpha(0.5);
       
-      const core = this.add.circle(0, 0, 6, 0x00ff00);
-      core.setAlpha(0.8);
+      const core = this.add.circle(0, 0, 4, 0x00ff00);
+      core.setAlpha(0.9);
       
-      const text = this.add.text(0, 0, 'S', { fontSize: '14px', fill: '#ffffff', fontStyle: 'bold' });
+      const text = this.add.text(0, 2, 'S', { fontSize: '12px', fill: '#ffffff', fontStyle: 'bold' });
       text.setOrigin(0.5);
       
-      powerupItem.add([outerRing, innerRing, core, text]);
+      powerupItem.add([outerRing, middleRing, innerRing, core, text]);
     } else if (type === 'guns') {
-      // Guns powerup - aggressive design
-      const outerBox = this.add.rectangle(0, 0, 24, 24, 0xff0000);
-      outerBox.setFillStyle(undefined, 0);
+      const outerBox = this.add.rectangle(0, 0, 26, 26, undefined, 0);
       outerBox.setStrokeStyle(3, 0xff0000);
       
-      const innerBox = this.add.rectangle(0, 0, 16, 16, 0xff0000);
-      innerBox.setAlpha(0.6);
+      const innerBox = this.add.rectangle(0, 0, 18, 18, 0xff0000);
+      innerBox.setAlpha(0.5);
       
-      const topPoint = this.add.triangle(0, -10, -4, -14, 4, -14, 0, -10, 0xffaa00);
-      const bottomPoint = this.add.triangle(0, 10, -4, 14, 4, 14, 0, 10, 0xffaa00);
+      const barrel1 = this.add.rectangle(-6, -8, 3, 8, 0xffaa00);
+      const barrel2 = this.add.rectangle(6, -8, 3, 8, 0xffaa00);
       
-      const text = this.add.text(0, 0, 'G', { fontSize: '14px', fill: '#ffffff', fontStyle: 'bold' });
+      const text = this.add.text(0, 3, 'G', { fontSize: '12px', fill: '#ffffff', fontStyle: 'bold' });
       text.setOrigin(0.5);
       
-      powerupItem.add([outerBox, innerBox, topPoint, bottomPoint, text]);
+      powerupItem.add([outerBox, innerBox, barrel1, barrel2, text]);
     }
     
     powerupItem.setDepth(5);
@@ -585,11 +575,11 @@ export class GameScene extends Phaser.Scene {
   activatePowerup(type) {
     if (type === 'shield') {
       this.powerups.shield = true;
-      this.powerups.shieldDuration = 10000; // 10 seconds
+      this.powerups.shieldDuration = 10000;
       this.showPowerupMessage('SHIELD ACTIVATED!', '#00ff00');
     } else if (type === 'guns') {
       this.powerups.guns = true;
-      this.powerups.gunsDuration = 8000; // 8 seconds
+      this.powerups.gunsDuration = 8000;
       this.showPowerupMessage('GUNS ACTIVATED!', '#ff0000');
     }
   }
@@ -609,7 +599,6 @@ export class GameScene extends Phaser.Scene {
       }
     }
     
-    // Update powerup text
     let powerupDisplay = '';
     if (this.powerups.shield) {
       powerupDisplay += 'Shield: ' + Math.ceil(this.powerups.shieldDuration / 1000) + 's ';
@@ -640,9 +629,10 @@ export class GameScene extends Phaser.Scene {
   
   fireGun() {
     const bulletX = this.player.x;
-    const bulletY = this.player.y - 30;
+    const bulletY = this.player.y - 35;
     
     const bullet = this.add.rectangle(bulletX, bulletY, 4, 12, 0xffff00);
+    bullet.setStrokeStyle(1, 0xffaa00);
     bullet.setDepth(8);
     this.bullets.push(bullet);
   }
@@ -658,26 +648,27 @@ export class GameScene extends Phaser.Scene {
   endGame() {
     this.gameActive = false;
     this.gameOverText.setText(`GAME OVER`);
-    this.restartText.setText(`Score: ${this.score}\nPress SPACE to Restart`);
+    this.restartText.setText(`Score: ${this.score}\nPress SPACE to Menu`);
     this.gameOverText.setVisible(true);
     this.restartText.setVisible(true);
     
-    // Darken background
+    this.saveScore(this.score);
     this.cameras.main.setAlpha(0.7);
     
     this.input.keyboard.on('keydown-SPACE', () => {
       this.cameras.main.setAlpha(1);
-      this.scene.restart();
+      this.scene.start('MenuScene');
     });
   }
 
   createStarfield() {
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 120; i++) {
       const x = Phaser.Math.Between(0, this.gameWidth);
       const y = Phaser.Math.Between(0, this.gameHeight);
       const size = Phaser.Math.Between(1, 2);
       const star = this.add.circle(x, y, size, 0xffffff);
       star.setDepth(0);
+      star.setAlpha(0.6 + Math.random() * 0.4);
     }
   }
   
@@ -688,14 +679,12 @@ export class GameScene extends Phaser.Scene {
       const shieldRadius = 50;
       const shieldAlpha = 0.6 + Math.sin(this.game.getTime() / 200) * 0.3;
       
-      // Draw shield sphere
       this.shieldGraphic.fillStyle(0x00ff00, shieldAlpha * 0.3);
       this.shieldGraphic.fillCircle(this.player.x, this.player.y, shieldRadius);
       
       this.shieldGraphic.lineStyle(3, 0x00ff00, shieldAlpha);
       this.shieldGraphic.strokeCircle(this.player.x, this.player.y, shieldRadius);
       
-      // Draw pulsing rings
       const rings = 3;
       for (let i = 1; i <= rings; i++) {
         const ringRadius = shieldRadius * (i / rings);
@@ -711,35 +700,45 @@ export class GameScene extends Phaser.Scene {
   spawnEnemySpaceship() {
     const lanePositions = this.getLanePositions();
     const lane = Phaser.Math.Between(0, 2);
-    const enemy = this.createEnemySpaceship(lanePositions[lane], -50);
+    const designIndex = Phaser.Math.Between(0, 2);
+    const enemy = this.createEnemySpaceship(lanePositions[lane], -50, designIndex);
     this.enemies.push(enemy);
   }
   
-  createEnemySpaceship(x, y) {
+  createEnemySpaceship(x, y, designIndex = 0) {
     const enemy = this.add.container(x, y);
     
-    // Enemy ship design (red/hostile colors)
-    const bodyPoints = [0, 20, 18, -10, 12, -18, -12, -18, -18, -10];
-    const body = this.add.polygon(0, 0, bodyPoints, 0xff3333);
-    body.setStrokeStyle(2, 0xff0000);
+    if (designIndex === 0) {
+      const body = this.add.polygon(0, 0, [0, -20, 18, 10, 12, 20, -12, 20, -18, 10], 0xff3333);
+      body.setStrokeStyle(2, 0xff0000);
+      
+      const cockpit = this.add.circle(0, -10, 5, 0xff6666);
+      cockpit.setStrokeStyle(2, 0xff0000);
+      
+      const leftWing = this.add.polygon(-14, 5, [-22, 5, -18, 8, -16, 6], 0xcc0000);
+      const rightWing = this.add.polygon(14, 5, [22, 5, 18, 8, 16, 6], 0xcc0000);
+      
+      enemy.add([body, leftWing, rightWing, cockpit]);
+    } else if (designIndex === 1) {
+      const body = this.add.polygon(0, 0, [0, -22, 16, -5, 14, 20, -14, 20, -16, -5], 0xff4444);
+      body.setStrokeStyle(2, 0xff2222);
+      
+      const cockpit = this.add.circle(0, -12, 4, 0xff6666);
+      const weapon = this.add.polygon(0, 18, [-4, 20, 0, 22, 4, 20], 0xff0000);
+      
+      enemy.add([body, cockpit, weapon]);
+    } else {
+      const body = this.add.polygon(0, 0, [0, -24, 15, -8, 16, 18, -16, 18, -15, -8], 0xff5555);
+      body.setStrokeStyle(2, 0xff1111);
+      
+      const cockpit = this.add.circle(0, -14, 4, 0xff8888);
+      const stripe = this.add.rectangle(0, 0, 4, 24, undefined, 0);
+      stripe.setStrokeStyle(1, 0xff2222);
+      
+      enemy.add([body, stripe, cockpit]);
+    }
     
-    // Hostile cockpit
-    const cockpit = this.add.circle(0, 8, 5, 0xff0000);
-    cockpit.setStrokeStyle(2, 0xffaa00);
-    
-    // Enemy wings
-    const leftWing = this.add.triangle(-12, -8, -18, -8, -15, -12, -12, -8, 0xcc0000);
-    const rightWing = this.add.triangle(12, -8, 18, -8, 15, -12, 12, -8, 0xcc0000);
-    leftWing.setStrokeStyle(1, 0xff0000);
-    rightWing.setStrokeStyle(1, 0xff0000);
-    
-    // Enemy weapons (pointed parts)
-    const weapon1 = this.add.triangle(0, 15, -6, 20, 0, 18, 0x00ff00);
-    const weapon2 = this.add.triangle(0, 15, 6, 20, 0, 18, 0x00ff00);
-    
-    enemy.add([body, leftWing, rightWing, cockpit, weapon1, weapon2]);
     enemy.setDepth(8);
-    enemy.isEnemy = true;
     return enemy;
   }
   
@@ -750,98 +749,37 @@ export class GameScene extends Phaser.Scene {
     const bullet = this.add.rectangle(bulletX, bulletY, 4, 12, 0xff3333);
     bullet.setStrokeStyle(1, 0xff0000);
     bullet.setDepth(8);
-    bullet.isEnemyBullet = true;
-    bullet.velocityY = 300;
   }
   
-  updateShipDesignDisplay() {
-    const design = this.spaceshipDesigns[this.currentShipDesign];
-    const nextDesign = this.spaceshipDesigns[this.currentShipDesign + 1];
-    
-    let displayText = `Ship: ${design.name}`;
-    if (nextDesign && !nextDesign.unlocked) {
-      displayText += ` | Next: ${nextDesign.name} (${nextDesign.cost}pts)`;
+  destroyWithEffect(obj) {
+    for (let i = 0; i < 6; i++) {
+      const particle = this.add.circle(obj.x, obj.y, 3, 0xffaa00);
+      particle.setDepth(8);
+      
+      const angle = (i / 6) * Math.PI * 2;
+      const velocityX = Math.cos(angle) * 150;
+      const velocityY = Math.sin(angle) * 150;
+      
+      this.tweens.add({
+        targets: particle,
+        x: obj.x + velocityX,
+        y: obj.y + velocityY,
+        alpha: 0,
+        duration: 600,
+        ease: 'Linear',
+        onComplete: () => particle.destroy()
+      });
     }
-    this.shipDesignText.setText(displayText);
   }
   
-  createSpaceship(x, y, designIndex = 0) {
-    const design = this.spaceshipDesigns[designIndex];
-    const ship = this.add.container(x, y);
-    
-    if (designIndex === 0) {
-      // Starter design
-      const bodyPoints = [0, -20, 18, 10, 12, 18, -12, 18, -18, 10];
-      const body = this.add.polygon(0, 0, bodyPoints, design.color);
-      body.setStrokeStyle(2, 0x00ffff);
-      
-      const cockpit = this.add.circle(0, -8, 5, 0xffff00);
-      cockpit.setStrokeStyle(2, 0xffaa00);
-      
-      const cockpitGlow = this.add.circle(0, -8, 3, 0xffff88);
-      
-      const leftWing = this.add.triangle(-12, 8, -18, 8, -15, 12, -12, 8, 0x0099ff);
-      const rightWing = this.add.triangle(12, 8, 18, 8, 15, 12, 12, 8, 0x0099ff);
-      leftWing.setStrokeStyle(1, 0x00ffff);
-      rightWing.setStrokeStyle(1, 0x00ffff);
-      
-      const flame = this.createFlame();
-      flame.name = 'flame';
-      
-      ship.add([body, leftWing, rightWing, cockpitGlow, cockpit, flame]);
-    } else if (designIndex === 1) {
-      // Sleek design
-      const bodyPoints = [0, -22, 16, 8, 10, 20, -10, 20, -16, 8];
-      const body = this.add.polygon(0, 0, bodyPoints, design.color);
-      body.setStrokeStyle(3, 0xff00ff);
-      
-      const cockpit = this.add.circle(0, -10, 4, 0xffff00);
-      const cockpitGlow = this.add.circle(0, -10, 2, 0xffffff);
-      
-      const stripe = this.add.rectangle(0, 0, 8, 30, undefined, 0);
-      stripe.setStrokeStyle(2, 0xff00ff);
-      
-      const flame = this.createFlame();
-      flame.setScale(1.1);
-      
-      ship.add([body, stripe, cockpitGlow, cockpit, flame]);
-    } else if (designIndex === 2) {
-      // Heavy design
-      const bodyPoints = [0, -18, 20, 12, 14, 20, -14, 20, -20, 12];
-      const body = this.add.polygon(0, 0, bodyPoints, design.color);
-      body.setStrokeStyle(3, 0xffaa00);
-      
-      const cockpit = this.add.circle(0, -6, 6, 0xffff00);
-      const armor = this.add.rectangle(0, 5, 18, 12, undefined, 0);
-      armor.setStrokeStyle(2, 0xffaa00);
-      
-      const leftWeapon = this.add.rectangle(-10, 0, 4, 8, 0xff6600);
-      const rightWeapon = this.add.rectangle(10, 0, 4, 8, 0xff6600);
-      
-      const flame = this.createFlame();
-      flame.setScale(1.2);
-      
-      ship.add([body, armor, cockpit, leftWeapon, rightWeapon, flame]);
-    } else if (designIndex === 3) {
-      // Phantom design
-      const bodyPoints = [0, -20, 16, 5, 12, 18, 0, 20, -12, 18, -16, 5];
-      const body = this.add.polygon(0, 0, bodyPoints, design.color);
-      body.setStrokeStyle(2, 0x00ff88);
-      body.setAlpha(0.9);
-      
-      const cockpit = this.add.circle(0, -8, 5, 0x00ffff);
-      const aura = this.add.circle(0, 0, 25, undefined, 0);
-      aura.setStrokeStyle(1, 0x00ff88);
-      aura.setAlpha(0.4);
-      
-      const flame = this.createFlame();
-      flame.setTint(0x00ff88);
-      
-      ship.add([body, aura, cockpit, flame]);
-    }
-    
-    ship.setDepth(10);
-    ship.designIndex = designIndex;
-    return ship;
+  saveScore(score) {
+    const scores = JSON.parse(localStorage.getItem('cosmicRunnerHighScores')) || [];
+    scores.push(score);
+    localStorage.setItem('cosmicRunnerHighScores', JSON.stringify(scores));
+  }
+  
+  getUnlockedShips() {
+    const stored = localStorage.getItem('cosmicRunnerUnlockedShips');
+    return stored ? JSON.parse(stored) : [true, false, false, false];
   }
 }
