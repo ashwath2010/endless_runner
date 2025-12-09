@@ -6,7 +6,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   preload() {
-    // Preload assets if needed
+    // No need to preload - PNG files are loaded as sprites dynamically
   }
 
   create() {
@@ -17,142 +17,329 @@ export class MenuScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#0a0e27');
     this.createStarfield();
 
-    // Load high scores from localStorage
+    // Load game data
     this.highScores = this.getHighScores();
     this.playerCoins = this.getPlayerCoins();
+    this.unlockedShips = JSON.parse(localStorage.getItem('cosmicRunnerUnlockedShips')) || [true, false, false, false];
 
-    // Title
-    const title = this.add.text(this.gameWidth / 2, 40, 'COSMIC RUNNER', {
-      fontSize: '48px',
+    // Main title with glow effect
+    const titleBg = this.add.rectangle(this.gameWidth / 2, 50, 400, 80, 0x00ff88);
+    titleBg.setAlpha(0.1);
+    titleBg.setDepth(5);
+
+    const title = this.add.text(this.gameWidth / 2, 50, 'COSMIC RUNNER', {
+      fontSize: '56px',
       fill: '#00ff88',
       fontStyle: 'bold',
-      stroke: '#000000',
+      stroke: '#00aa44',
       strokeThickness: 4
     });
     title.setOrigin(0.5);
     title.setDepth(10);
 
-    // Current coins display
-    const coinsText = this.add.text(20, 20, `Coins: ${this.playerCoins}`, {
-      fontSize: '24px',
+    // Coins display with styled background
+    const coinsBg = this.add.rectangle(this.gameWidth - 80, 30, 140, 50, 0xffff00);
+    coinsBg.setAlpha(0.1);
+    coinsBg.setStrokeStyle(2, 0xffff00);
+    coinsBg.setDepth(5);
+
+    const coinsText = this.add.text(this.gameWidth - 80, 30, `💰 ${this.playerCoins}`, {
+      fontSize: '26px',
       fill: '#ffff00',
       fontStyle: 'bold',
       stroke: '#000000',
       strokeThickness: 2
     });
+    coinsText.setOrigin(0.5);
     coinsText.setDepth(10);
 
-    // High Scores Section
-    const scoresTitle = this.add.text(this.gameWidth / 2, 100, 'HIGH SCORES', {
-      fontSize: '28px',
+    // High Scores Section with styled container
+    const scoresContainer = this.add.rectangle(50, 160, 200, 200, 0xff00ff);
+    scoresContainer.setAlpha(0.05);
+    scoresContainer.setStrokeStyle(2, 0xff00ff);
+    scoresContainer.setDepth(5);
+
+    const scoresTitle = this.add.text(50, 90, 'HIGH SCORES', {
+      fontSize: '22px',
       fill: '#ff00ff',
       fontStyle: 'bold'
     });
     scoresTitle.setOrigin(0.5);
     scoresTitle.setDepth(10);
 
-    let scoreY = 140;
-    for (let i = 0; i < Math.min(3, this.highScores.length); i++) {
-      const scoreText = this.add.text(this.gameWidth / 2, scoreY, `${i + 1}. ${this.highScores[i]} pts`, {
-        fontSize: '20px',
+    let scoreY = 125;
+    if (this.highScores.length === 0) {
+      const noScoreText = this.add.text(50, scoreY, 'No scores yet\nPlay to earn!', {
+        fontSize: '14px',
         fill: '#00ffff',
-        fontStyle: 'bold'
+        align: 'center'
       });
-      scoreText.setOrigin(0.5);
-      scoreY += 35;
+      noScoreText.setOrigin(0.5);
+      noScoreText.setDepth(10);
+    } else {
+      for (let i = 0; i < Math.min(3, this.highScores.length); i++) {
+        const scoreText = this.add.text(50, scoreY, `${i + 1}. ${this.highScores[i]}`, {
+          fontSize: '16px',
+          fill: i === 0 ? '#ffff00' : i === 1 ? '#ff8888' : '#00ffff',
+          fontStyle: 'bold'
+        });
+        scoreText.setOrigin(0.5);
+        scoreY += 40;
+      }
     }
 
-    // Shop Section
-    const shopTitle = this.add.text(this.gameWidth / 2, 270, 'SPACESHIP SHOP', {
-      fontSize: '28px',
-      fill: '#ff00ff',
-      fontStyle: 'bold'
+    // Shop Section Title with better styling
+    const shopBg = this.add.rectangle(this.gameWidth / 2, 260, this.gameWidth - 40, 50, 0x00ff88);
+    shopBg.setAlpha(0.08);
+    shopBg.setStrokeStyle(2, 0x00ff88);
+    shopBg.setDepth(5);
+
+    const shopTitle = this.add.text(this.gameWidth / 2, 260, '⭐ SPACESHIP SHOP ⭐', {
+      fontSize: '26px',
+      fill: '#00ff88',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 2
     });
     shopTitle.setOrigin(0.5);
     shopTitle.setDepth(10);
 
-    // Load unlocked ships from localStorage
-    const unlockedShips = JSON.parse(localStorage.getItem('cosmicRunnerUnlockedShips')) || [true, false, false, false];
-
-    // Spaceship designs with purchase button
-    this.spaceshipDesigns = [
-      { name: 'Starter', cost: 0, color: 0x00d4ff, unlocked: unlockedShips[0] },
-      { name: 'Phantom', cost: 500, color: 0xff00ff, unlocked: unlockedShips[1] },
-      { name: 'Inferno', cost: 1000, color: 0xffaa00, unlocked: unlockedShips[2] },
-      { name: 'Quantum', cost: 2000, color: 0x00ff88, unlocked: unlockedShips[3] }
+    // Spaceship designs with generated graphics
+    const shipDesigns = [
+      { name: 'Classic', cost: 0, index: 0, colors: { primary: 0x00d4ff, secondary: 0x00ffff } },
+      { name: 'Phantom', cost: 500, index: 1, colors: { primary: 0xff00ff, secondary: 0xff88ff } },
+      { name: 'Inferno', cost: 1000, index: 2, colors: { primary: 0xffaa00, secondary: 0xffdd00 } },
+      { name: 'Quantum', cost: 2000, index: 3, colors: { primary: 0x00ff88, secondary: 0x00ffaa } }
     ];
 
-    let shipX = 80;
-    const shipY = 350;
-    
-    for (let i = 0; i < this.spaceshipDesigns.length; i++) {
-      const design = this.spaceshipDesigns[i];
-      
-      // Ship preview
-      this.createShipPreview(shipX, shipY, design.color);
-      
-      // Ship name and cost
-      const nameText = this.add.text(shipX, shipY + 60, design.name, {
-        fontSize: '14px',
-        fill: design.unlocked ? '#00ff88' : '#ff8888',
-        fontStyle: 'bold',
-        align: 'center'
+    const startX = 120;
+    const shipY = 420;
+    const spacing = 220;
+
+    for (let i = 0; i < shipDesigns.length; i++) {
+      const design = shipDesigns[i];
+      const shipX = startX + i * spacing;
+      const isUnlocked = this.unlockedShips[i];
+
+      // Ship card background
+      const cardBg = this.add.rectangle(shipX, shipY - 20, 180, 240, 0x1a1a2e);
+      cardBg.setStrokeStyle(2, isUnlocked ? 0x00ff88 : 0xff0000);
+      cardBg.setDepth(6);
+
+      // Draw advanced spaceship graphic
+      this.drawAdvancedShip(shipX, shipY - 60, design.colors.primary, design.colors.secondary, isUnlocked);
+
+      // Ship name
+      const nameText = this.add.text(shipX, shipY + 20, design.name, {
+        fontSize: '18px',
+        fill: isUnlocked ? '#00ff88' : '#ffffff',
+        fontStyle: 'bold'
       });
       nameText.setOrigin(0.5);
       nameText.setDepth(10);
 
-      // Buy button
-      if (!design.unlocked) {
-        const buttonText = this.add.text(shipX, shipY + 85, `${design.cost}`, {
-          fontSize: '12px',
-          fill: this.playerCoins >= design.cost ? '#ffff00' : '#ff0000',
-          fontStyle: 'bold',
-          align: 'center'
-        });
-        buttonText.setOrigin(0.5);
-        buttonText.setInteractive({ useHandCursor: true });
-        buttonText.once('pointerdown', () => {
-          if (this.playerCoins >= design.cost) {
-            this.playerCoins -= design.cost;
-            unlockedShips[i] = true;
-            localStorage.setItem('cosmicRunnerUnlockedShips', JSON.stringify(unlockedShips));
-            this.savePlayerCoins(this.playerCoins);
-            this.scene.restart();
-          }
-        });
-      } else {
-        const unlockedText = this.add.text(shipX, shipY + 85, 'Owned', {
-          fontSize: '12px',
-          fill: '#00ff88',
+      // Purchase button or status
+      if (!isUnlocked) {
+        // Cost display
+        const costBg = this.add.rectangle(shipX, shipY + 65, 140, 40, 0xff8800);
+        costBg.setInteractive({ useHandCursor: true });
+        costBg.setDepth(9);
+
+        const canAfford = this.playerCoins >= design.cost;
+        costBg.setFillStyle(canAfford ? 0x00ff88 : 0xff3333, 0.8);
+
+        const costText = this.add.text(shipX, shipY + 65, `Buy: ${design.cost}`, {
+          fontSize: '14px',
+          fill: '#000000',
           fontStyle: 'bold'
         });
-        unlockedText.setOrigin(0.5);
-      }
+        costText.setOrigin(0.5);
+        costText.setDepth(10);
+        costText.setInteractive({ useHandCursor: true });
 
-      shipX += 180;
+        // Store reference for callback
+        const menuScene = this;
+
+        // Click handlers - using proper binding
+        const handlePurchase = () => {
+          menuScene.purchaseShip(i, design.cost, design.name);
+        };
+
+        costBg.on('pointerdown', handlePurchase);
+        costText.on('pointerdown', handlePurchase);
+
+        costBg.on('pointerover', () => {
+          costBg.setScale(1.05);
+        });
+        costBg.on('pointerout', () => {
+          costBg.setScale(1);
+        });
+      } else {
+        const ownedBg = this.add.rectangle(shipX, shipY + 65, 140, 40, 0x00aa00);
+        ownedBg.setDepth(9);
+
+        const ownedText = this.add.text(shipX, shipY + 65, '✓ OWNED', {
+          fontSize: '14px',
+          fill: '#ffffff',
+          fontStyle: 'bold'
+        });
+        ownedText.setOrigin(0.5);
+        ownedText.setDepth(10);
+      }
     }
 
-    // Play Button
-    const playButton = this.add.rectangle(this.gameWidth / 2, this.gameHeight - 80, 200, 60, 0x00ff88);
-    playButton.setInteractive({ useHandCursor: true });
-     playButton.once('pointerdown', () => {
-      this.scene.stop();
-      this.scene.start('GameScene');
-    });
-    playButton.on('pointerover', () => {
-      playButton.setFillStyle(0x00ffaa);
-    });
-    playButton.on('pointerout', () => {
-      playButton.setFillStyle(0x00ff88);
-    });
+    // Play Button with enhanced styling
+    const playButtonBg = this.add.rectangle(this.gameWidth / 2, this.gameHeight - 80, 220, 70, 0x00ff88);
+    playButtonBg.setInteractive({ useHandCursor: true });
+    playButtonBg.setDepth(9);
 
-    const playText = this.add.text(this.gameWidth / 2, this.gameHeight - 80, 'PLAY GAME', {
-      fontSize: '24px',
+    const playText = this.add.text(this.gameWidth / 2, this.gameHeight - 80, '▶ PLAY GAME', {
+      fontSize: '28px',
       fill: '#000000',
-      fontStyle: 'bold'
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 1
     });
     playText.setOrigin(0.5);
-    playText.setDepth(11);
+    playText.setDepth(10);
+    playText.setInteractive({ useHandCursor: true });
+
+    // Play button interactions
+    const handlePlay = () => {
+      this.scene.stop();
+      this.scene.start('GameScene');
+    };
+
+    playButtonBg.on('pointerdown', handlePlay);
+    playText.on('pointerdown', handlePlay);
+
+    playButtonBg.on('pointerover', () => {
+      playButtonBg.setScale(1.08);
+      playButtonBg.setFillStyle(0x00ffaa);
+    });
+    playButtonBg.on('pointerout', () => {
+      playButtonBg.setScale(1);
+      playButtonBg.setFillStyle(0x00ff88);
+    });
+  }
+
+  drawAdvancedShip(x, y, primaryColor, secondaryColor, isUnlocked) {
+    const container = this.add.container(x, y);
+    container.setDepth(8);
+    container.setAlpha(isUnlocked ? 1 : 0.6);
+
+    // Draw advanced spaceship
+    const graphics = this.make.graphics({ x, y, add: false });
+
+    // Main body
+    graphics.fillStyle(primaryColor, 1);
+    graphics.beginPath();
+    graphics.moveTo(-20, -15);
+    graphics.lineTo(0, -30);
+    graphics.lineTo(20, -15);
+    graphics.lineTo(25, 15);
+    graphics.lineTo(0, 25);
+    graphics.lineTo(-25, 15);
+    graphics.closePath();
+    graphics.fillPath();
+
+    // Body outline
+    graphics.lineStyle(2, secondaryColor, 1);
+    graphics.beginPath();
+    graphics.moveTo(-20, -15);
+    graphics.lineTo(0, -30);
+    graphics.lineTo(20, -15);
+    graphics.lineTo(25, 15);
+    graphics.lineTo(0, 25);
+    graphics.lineTo(-25, 15);
+    graphics.closePath();
+    graphics.strokePath();
+
+    // Cockpit
+    graphics.fillStyle(0xffff00, 0.9);
+    graphics.beginPath();
+    graphics.arc(0, -18, 6, 0, Math.PI * 2);
+    graphics.closePath();
+    graphics.fillPath();
+
+    graphics.lineStyle(2, 0xffaa00, 1);
+    graphics.strokeCircleShape(new Phaser.Geom.Circle(0, -18, 6));
+
+    // Engines
+    graphics.fillStyle(0xff6600, 1);
+    graphics.fillRect(-8, 18, 4, 10);
+    graphics.fillRect(4, 18, 4, 10);
+
+    graphics.fillStyle(0xff9933, 0.7);
+    graphics.fillRect(-10, 26, 8, 4);
+    graphics.fillRect(2, 26, 8, 4);
+
+    graphics.add(graphics);
+  }
+
+  purchaseShip(shipIndex, cost, shipName) {
+    if (this.playerCoins >= cost) {
+      this.playerCoins -= cost;
+      this.unlockedShips[shipIndex] = true;
+
+      localStorage.setItem('cosmicRunnerCoins', this.playerCoins.toString());
+      localStorage.setItem('cosmicRunnerUnlockedShips', JSON.stringify(this.unlockedShips));
+
+      // Show success message
+      const successMsg = this.add.text(this.gameWidth / 2, 150, `✓ ${shipName} Unlocked!`, {
+        fontSize: '32px',
+        fill: '#00ff88',
+        fontStyle: 'bold',
+        align: 'center',
+        stroke: '#000000',
+        strokeThickness: 2
+      });
+      successMsg.setOrigin(0.5);
+      successMsg.setDepth(30);
+      successMsg.setAlpha(0);
+
+      this.tweens.add({
+        targets: successMsg,
+        alpha: 1,
+        duration: 300,
+        ease: 'Linear'
+      });
+
+      // Restart scene to refresh UI
+      this.time.delayedCall(800, () => {
+        this.scene.restart();
+      });
+    } else {
+      // Show not enough coins message
+      const errorMsg = this.add.text(this.gameWidth / 2, 150, '✗ Not Enough Coins!', {
+        fontSize: '32px',
+        fill: '#ff3333',
+        fontStyle: 'bold',
+        align: 'center',
+        stroke: '#000000',
+        strokeThickness: 2
+      });
+      errorMsg.setOrigin(0.5);
+      errorMsg.setDepth(30);
+      errorMsg.setAlpha(0);
+
+      this.tweens.add({
+        targets: errorMsg,
+        alpha: 1,
+        duration: 300,
+        ease: 'Linear',
+        onComplete: () => {
+          this.tweens.add({
+            targets: errorMsg,
+            alpha: 0,
+            duration: 300,
+            delay: 1500,
+            ease: 'Linear',
+            onComplete: () => errorMsg.destroy()
+          });
+        }
+      });
+    }
   }
 
   createStarfield() {
@@ -166,24 +353,10 @@ export class MenuScene extends Phaser.Scene {
     }
   }
 
-  createShipPreview(x, y, color) {
-    const ship = this.add.container(x, y);
-    
-    // Simplified preview ship
-    const body = this.add.polygon(0, 0, [0, -12, 12, 8, 8, 12, -8, 12, -12, 8], color);
-    body.setStrokeStyle(2, 0xffffff);
-    
-    const cockpit = this.add.circle(0, -5, 3, 0xffff00);
-    cockpit.setStrokeStyle(1, 0xffaa00);
-    
-    ship.add([body, cockpit]);
-    ship.setDepth(10);
-  }
-
   getHighScores() {
     const stored = localStorage.getItem('cosmicRunnerHighScores');
     if (stored) {
-      return JSON.parse(stored).sort((a, b) => b - a).slice(0, 10);
+      return JSON.parse(stored).sort((a, b) => b - a).slice(0, 3);
     }
     return [];
   }
@@ -191,9 +364,5 @@ export class MenuScene extends Phaser.Scene {
   getPlayerCoins() {
     const stored = localStorage.getItem('cosmicRunnerCoins');
     return stored ? parseInt(stored) : 0;
-  }
-
-  savePlayerCoins(coins) {
-    localStorage.setItem('cosmicRunnerCoins', coins.toString());
   }
 }
