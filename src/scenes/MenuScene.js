@@ -20,6 +20,7 @@ export class MenuScene extends Phaser.Scene {
     // Load game data
     this.highScores = this.getHighScores();
     this.playerCoins = this.getPlayerCoins();
+    this.playerShields = this.getPlayerShields();
     this.unlockedShips = JSON.parse(localStorage.getItem('cosmicRunnerUnlockedShips')) || [true, false, false, false];
 
     // ===== HEADER SECTION =====
@@ -38,13 +39,13 @@ export class MenuScene extends Phaser.Scene {
     title.setDepth(10);
 
     // Coins display
-    const coinsBg = this.add.rectangle(this.gameWidth - 70, 40, 120, 45, 0xffff00);
+    const coinsBg = this.add.rectangle(100, 40, 100, 45, 0xffff00);
     coinsBg.setAlpha(0.1);
     coinsBg.setStrokeStyle(2, 0xffff00);
     coinsBg.setDepth(5);
 
-    const coinsText = this.add.text(this.gameWidth - 70, 40, `💰 ${this.playerCoins}`, {
-      fontSize: '22px',
+    const coinsText = this.add.text(100, 40, `💰 ${this.playerCoins}`, {
+      fontSize: '18px',
       fill: '#ffff00',
       fontStyle: 'bold',
       stroke: '#000000',
@@ -53,12 +54,27 @@ export class MenuScene extends Phaser.Scene {
     coinsText.setOrigin(0.5);
     coinsText.setDepth(10);
 
-    // ===== CONTENT AREA - TWO COLUMNS =====
-    const contentY = 130;
-    const contentHeight = this.gameHeight - 220;
+    // Shields display
+    const shieldsBg = this.add.rectangle(this.gameWidth - 100, 40, 100, 45, 0x00ff88);
+    shieldsBg.setAlpha(0.1);
+    shieldsBg.setStrokeStyle(2, 0x00ff88);
+    shieldsBg.setDepth(5);
 
-    // LEFT COLUMN: HIGH SCORES
-    const scoresBg = this.add.rectangle(80, contentY + contentHeight / 2, 150, contentHeight, 0xff00ff);
+    const shieldsText = this.add.text(this.gameWidth - 100, 40, `🛡️ ${this.playerShields}`, {
+      fontSize: '18px',
+      fill: '#00ff88',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 2
+    });
+    shieldsText.setOrigin(0.5);
+    shieldsText.setDepth(10);
+
+    // ===== CONTENT AREA =====
+    const contentY = 130;
+
+    // HIGH SCORES (Left column)
+    const scoresBg = this.add.rectangle(80, contentY + 120, 150, 200, 0xff00ff);
     scoresBg.setAlpha(0.05);
     scoresBg.setStrokeStyle(2, 0xff00ff);
     scoresBg.setDepth(5);
@@ -71,7 +87,7 @@ export class MenuScene extends Phaser.Scene {
     scoresTitle.setOrigin(0.5);
     scoresTitle.setDepth(10);
 
-    let scoreY = contentY + 45;
+    let scoreY = contentY + 50;
     if (this.highScores.length === 0) {
       const noScoreText = this.add.text(80, scoreY, 'Play\nto\nearn!', {
         fontSize: '12px',
@@ -88,27 +104,46 @@ export class MenuScene extends Phaser.Scene {
           fontStyle: 'bold'
         });
         scoreText.setOrigin(0.5);
-        scoreY += 28;
+        scoreY += 30;
       }
     }
 
-    // CENTER/RIGHT COLUMN: SHOP
-    const shopTitleBg = this.add.rectangle(this.gameWidth / 2, contentY + 10, 250, 35, 0x00ff88);
-    shopTitleBg.setAlpha(0.08);
-    shopTitleBg.setStrokeStyle(2, 0x00ff88);
-    shopTitleBg.setDepth(5);
+    // ===== SHOP SECTION (Center) - COLLAPSIBLE =====
+    let shopExpanded = false;
+    const shopItems = [];
 
-    const shopTitle = this.add.text(this.gameWidth / 2, contentY + 10, '⭐ SPACESHIP SHOP', {
-      fontSize: '16px',
-      fill: '#00ff88',
-      fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 2
+    const shopBtnBg = this.add.rectangle(this.gameWidth / 2, contentY + 20, 200, 50, 0x00ff88);
+    shopBtnBg.setInteractive({ useHandCursor: true });
+    shopBtnBg.setDepth(9);
+
+    const shopBtnText = this.add.text(this.gameWidth / 2, contentY + 20, '⭐ SHOP ⭐', {
+      fontSize: '20px',
+      fill: '#000000',
+      fontStyle: 'bold'
     });
-    shopTitle.setOrigin(0.5);
-    shopTitle.setDepth(10);
+    shopBtnText.setOrigin(0.5);
+    shopBtnText.setDepth(10);
+    shopBtnText.setInteractive({ useHandCursor: true });
 
-    // ===== SPACESHIP DESIGNS (4 CARDS IN 2x2 GRID) =====
+    const toggleShop = () => {
+      shopExpanded = !shopExpanded;
+      shopItems.forEach(item => {
+        item.setVisible(shopExpanded);
+      });
+      shopBtnBg.setFillStyle(shopExpanded ? 0x00ffaa : 0x00ff88);
+    };
+
+    shopBtnBg.on('pointerdown', toggleShop);
+    shopBtnText.on('pointerdown', toggleShop);
+
+    shopBtnBg.on('pointerover', () => {
+      shopBtnBg.setScale(1.05);
+    });
+    shopBtnBg.on('pointerout', () => {
+      shopBtnBg.setScale(1);
+    });
+
+    // SPACESHIP DESIGNS (hidden by default)
     const shipDesigns = [
       { name: 'CLASSIC', cost: 0, index: 0 },
       { name: 'PHANTOM', cost: 500, index: 1 },
@@ -116,54 +151,56 @@ export class MenuScene extends Phaser.Scene {
       { name: 'QUANTUM', cost: 2000, index: 3 }
     ];
 
-    const gridStartX = 280;
-    const gridStartY = contentY + 50;
-    const cardWidth = 130;
-    const cardHeight = 160;
-    const spacingX = 145;
-    const spacingY = 180;
+    const shipGridStartX = this.gameWidth / 2;
+    const shipGridStartY = contentY + 80;
+    const shipCardWidth = 110;
+    const shipCardHeight = 160;
+    const shipSpacingX = 130;
 
     for (let i = 0; i < shipDesigns.length; i++) {
       const design = shipDesigns[i];
-      const row = Math.floor(i / 2);
-      const col = i % 2;
-      
-      const shipX = gridStartX + col * spacingX;
-      const shipY = gridStartY + row * spacingY;
+      const shipX = shipGridStartX - shipSpacingX * 1.5 + i * shipSpacingX;
+      const shipY = shipGridStartY;
       const isUnlocked = this.unlockedShips[i];
 
       // Card background
-      const cardBg = this.add.rectangle(shipX, shipY, cardWidth, cardHeight, 0x1a1a2e);
+      const cardBg = this.add.rectangle(shipX, shipY, shipCardWidth, shipCardHeight, 0x1a1a2e);
       cardBg.setStrokeStyle(2, isUnlocked ? 0x00ff88 : 0xff6666);
       cardBg.setDepth(6);
+      cardBg.setVisible(false);
 
       // Draw modern spaceship
-      this.drawModernSpaceship(shipX, shipY - 35, i, isUnlocked);
+      this.drawModernSpaceship(shipX, shipY - 30, i, isUnlocked, cardBg.setVisible(false));
+      const shipGraphic = this.add.graphics();
+      shipGraphic.setVisible(false);
 
       // Ship name
-      const nameText = this.add.text(shipX, shipY + 25, design.name, {
-        fontSize: '12px',
+      const nameText = this.add.text(shipX, shipY + 18, design.name, {
+        fontSize: '10px',
         fill: isUnlocked ? '#00ff88' : '#ffffff',
         fontStyle: 'bold'
       });
       nameText.setOrigin(0.5);
       nameText.setDepth(10);
+      nameText.setVisible(false);
 
       // Purchase section
       if (!isUnlocked) {
         const canAfford = this.playerCoins >= design.cost;
         
-        const buyBtn = this.add.rectangle(shipX, shipY + 55, 110, 30, canAfford ? 0x00ff88 : 0xff3333);
+        const buyBtn = this.add.rectangle(shipX, shipY + 48, 90, 25, canAfford ? 0x00ff88 : 0xff3333);
         buyBtn.setInteractive({ useHandCursor: true });
         buyBtn.setDepth(9);
+        buyBtn.setVisible(false);
 
-        const buyText = this.add.text(shipX, shipY + 55, `${design.cost}`, {
-          fontSize: '12px',
+        const buyText = this.add.text(shipX, shipY + 48, `${design.cost}`, {
+          fontSize: '10px',
           fill: '#000000',
           fontStyle: 'bold'
         });
         buyText.setOrigin(0.5);
         buyText.setDepth(10);
+        buyText.setVisible(false);
 
         const menuScene = this;
         const handlePurchase = () => {
@@ -171,25 +208,74 @@ export class MenuScene extends Phaser.Scene {
         };
 
         buyBtn.on('pointerdown', handlePurchase);
-        buyBtn.on('pointerover', () => {
-          buyBtn.setScale(1.05);
-        });
-        buyBtn.on('pointerout', () => {
-          buyBtn.setScale(1);
-        });
-      } else {
-        const ownedBg = this.add.rectangle(shipX, shipY + 55, 110, 30, 0x00aa00);
-        ownedBg.setDepth(9);
+        buyBtn.on('pointerover', () => buyBtn.setScale(1.05));
+        buyBtn.on('pointerout', () => buyBtn.setScale(1));
 
-        const ownedText = this.add.text(shipX, shipY + 55, '✓ OWNED', {
-          fontSize: '11px',
+        shopItems.push(cardBg, nameText, buyBtn, buyText);
+      } else {
+        const ownedBg = this.add.rectangle(shipX, shipY + 48, 90, 25, 0x00aa00);
+        ownedBg.setDepth(9);
+        ownedBg.setVisible(false);
+
+        const ownedText = this.add.text(shipX, shipY + 48, '✓ OWNED', {
+          fontSize: '9px',
           fill: '#ffffff',
           fontStyle: 'bold'
         });
         ownedText.setOrigin(0.5);
         ownedText.setDepth(10);
+        ownedText.setVisible(false);
+
+        shopItems.push(cardBg, nameText, ownedBg, ownedText);
       }
     }
+
+    // SHIELDS (hidden by default)
+    const shieldCost = 100;
+    const shieldX = this.gameWidth / 2;
+    const shieldY = contentY + 310;
+
+    const shieldCardBg = this.add.rectangle(shieldX, shieldY, 110, 140, 0x1a1a2e);
+    shieldCardBg.setStrokeStyle(2, 0x00ff88);
+    shieldCardBg.setDepth(6);
+    shieldCardBg.setVisible(false);
+
+    // Draw shield graphic
+    this.drawShieldGraphic(shieldX, shieldY - 30, shieldCardBg.setVisible(false));
+
+    const shieldNameText = this.add.text(shieldX, shieldY + 18, 'SHIELD', {
+      fontSize: '10px',
+      fill: '#00ff88',
+      fontStyle: 'bold'
+    });
+    shieldNameText.setOrigin(0.5);
+    shieldNameText.setDepth(10);
+    shieldNameText.setVisible(false);
+
+    const canAffordShield = this.playerCoins >= shieldCost;
+    const buyShieldBtn = this.add.rectangle(shieldX, shieldY + 48, 90, 25, canAffordShield ? 0x00ff88 : 0xff3333);
+    buyShieldBtn.setInteractive({ useHandCursor: true });
+    buyShieldBtn.setDepth(9);
+    buyShieldBtn.setVisible(false);
+
+    const buyShieldText = this.add.text(shieldX, shieldY + 48, `${shieldCost}`, {
+      fontSize: '10px',
+      fill: '#000000',
+      fontStyle: 'bold'
+    });
+    buyShieldText.setOrigin(0.5);
+    buyShieldText.setDepth(10);
+    buyShieldText.setVisible(false);
+
+    const handleShieldPurchase = () => {
+      this.purchaseShield(shieldCost);
+    };
+
+    buyShieldBtn.on('pointerdown', handleShieldPurchase);
+    buyShieldBtn.on('pointerover', () => buyShieldBtn.setScale(1.05));
+    buyShieldBtn.on('pointerout', () => buyShieldBtn.setScale(1));
+
+    shopItems.push(shieldCardBg, shieldNameText, buyShieldBtn, buyShieldText);
 
     // ===== FOOTER: PLAY BUTTON =====
     const playBtn = this.add.rectangle(this.gameWidth / 2, this.gameHeight - 40, 180, 50, 0x00ff88);
@@ -220,203 +306,139 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
-  drawModernSpaceship(x, y, designIndex, isUnlocked) {
+  drawModernSpaceship(x, y, designIndex, isUnlocked, visibility) {
     const graphics = this.make.graphics({ x, y, add: true });
     graphics.setDepth(8);
     graphics.setAlpha(isUnlocked ? 1 : 0.6);
+    graphics.setScale(0.7);
 
     if (designIndex === 0) {
-      // CLASSIC FIGHTER - Cyan
-      this.drawClassicFighter(graphics);
+      this.drawClassicFighterShop(graphics);
     } else if (designIndex === 1) {
-      // PHANTOM RACER - Magenta
-      this.drawPhantomRacer(graphics);
+      this.drawPhantomRacerShop(graphics);
     } else if (designIndex === 2) {
-      // INFERNO BOMBER - Orange
-      this.drawInfernoBomber(graphics);
+      this.drawInfernoBomberShop(graphics);
     } else if (designIndex === 3) {
-      // QUANTUM SHIP - Green
-      this.drawQuantumShip(graphics);
+      this.drawQuantumShipShop(graphics);
     }
   }
 
-  drawClassicFighter(g) {
-    // Main fuselage
+  drawClassicFighterShop(g) {
     g.fillStyle(0x00d4ff, 1);
     g.beginPath();
-    g.moveTo(-15, -18);
-    g.lineTo(0, -28);
-    g.lineTo(15, -18);
-    g.lineTo(18, 12);
-    g.lineTo(0, 20);
-    g.lineTo(-18, 12);
+    g.moveTo(-15, -12);
+    g.lineTo(0, -20);
+    g.lineTo(15, -12);
+    g.lineTo(18, 8);
+    g.lineTo(0, 14);
+    g.lineTo(-18, 8);
     g.closePath();
     g.fillPath();
-
-    // Outline
     g.lineStyle(2, 0x00ffff, 1);
     g.strokePath();
 
-    // Wings
-    g.fillStyle(0x0099ff, 0.8);
-    g.beginPath();
-    g.moveTo(-15, -8);
-    g.lineTo(-28, -2);
-    g.lineTo(-22, 2);
-    g.closePath();
-    g.fillPath();
-
-    g.beginPath();
-    g.moveTo(15, -8);
-    g.lineTo(28, -2);
-    g.lineTo(22, 2);
-    g.closePath();
-    g.fillPath();
-
-    // Cockpit with glow
     g.fillStyle(0xffff00, 1);
-    g.fillCircle(0, -16, 5);
-    g.lineStyle(2, 0xffaa00, 1);
-    g.strokeCircle(0, -16, 5);
-
-    // Engines
+    g.fillCircle(0, -14, 4);
     g.fillStyle(0xff6600, 1);
-    g.fillRect(-7, 15, 3, 8);
-    g.fillRect(4, 15, 3, 8);
-
-    g.fillStyle(0xff9933, 0.7);
-    g.fillCircle(-5.5, 23, 3.5);
-    g.fillCircle(5.5, 23, 3.5);
+    g.fillRect(-5, 10, 2, 6);
+    g.fillRect(3, 10, 2, 6);
   }
 
-  drawPhantomRacer(g) {
-    // Sleek body
+  drawPhantomRacerShop(g) {
     g.fillStyle(0xff00ff, 1);
     g.beginPath();
-    g.moveTo(-12, -20);
-    g.lineTo(0, -28);
-    g.lineTo(12, -20);
-    g.lineTo(16, 8);
-    g.lineTo(0, 18);
-    g.lineTo(-16, 8);
+    g.moveTo(-12, -14);
+    g.lineTo(0, -20);
+    g.lineTo(12, -14);
+    g.lineTo(16, 6);
+    g.lineTo(0, 12);
+    g.lineTo(-16, 6);
     g.closePath();
     g.fillPath();
-
-    // Outline
     g.lineStyle(2, 0xff88ff, 1);
     g.strokePath();
 
-    // Central stripe
-    g.lineStyle(3, 0xff88ff, 0.8);
-    g.lineBetween(0, -28, 0, 18);
-
-    // Side intakes
-    g.fillStyle(0x00ffff, 0.9);
-    g.fillTriangleShape(new Phaser.Geom.Triangle(-12, -8, -22, 0, -16, 2));
-    g.fillTriangleShape(new Phaser.Geom.Triangle(12, -8, 22, 0, 16, 2));
-
-    // Cockpit
     g.fillStyle(0x00ffff, 1);
-    g.fillCircle(0, -14, 4);
-
-    // Thruster
+    g.fillCircle(0, -12, 3);
     g.fillStyle(0xff6600, 1);
     g.beginPath();
-    g.moveTo(-8, 18);
-    g.lineTo(8, 18);
-    g.lineTo(5, 24);
-    g.lineTo(-5, 24);
+    g.moveTo(-6, 12);
+    g.lineTo(6, 12);
+    g.lineTo(3, 16);
+    g.lineTo(-3, 16);
     g.closePath();
     g.fillPath();
   }
 
-  drawInfernoBomber(g) {
-    // Heavy body
+  drawInfernoBomberShop(g) {
     g.fillStyle(0xffaa00, 1);
     g.beginPath();
-    g.moveTo(-18, -15);
-    g.lineTo(0, -26);
-    g.lineTo(18, -15);
-    g.lineTo(20, 14);
-    g.lineTo(0, 22);
-    g.lineTo(-20, 14);
+    g.moveTo(-14, -12);
+    g.lineTo(0, -20);
+    g.lineTo(14, -12);
+    g.lineTo(16, 8);
+    g.lineTo(0, 14);
+    g.lineTo(-16, 8);
     g.closePath();
     g.fillPath();
-
-    // Outline
     g.lineStyle(2, 0xffdd00, 1);
     g.strokePath();
 
-    // Armor plating
-    g.lineStyle(1, 0xffdd00, 0.6);
-    g.lineBetween(-12, -8, -12, 12);
-    g.lineBetween(12, -8, 12, 12);
-
-    // Cockpit
     g.fillStyle(0xffff00, 1);
-    g.fillCircle(0, -12, 5);
-
-    // Weapon pods
+    g.fillCircle(0, -12, 4);
     g.fillStyle(0xff3333, 1);
-    g.fillRect(-10, 8, 4, 8);
-    g.fillRect(6, 8, 4, 8);
-
-    // Triple engines
+    g.fillRect(-8, 4, 3, 6);
+    g.fillRect(5, 4, 3, 6);
     g.fillStyle(0xff6600, 1);
-    g.fillRect(-7, 17, 3, 7);
-    g.fillRect(0, 17, 3, 7);
-    g.fillRect(4, 17, 3, 7);
-
-    g.fillStyle(0xff9933, 0.7);
-    g.fillCircle(-5.5, 24, 3);
-    g.fillCircle(1.5, 24, 3);
-    g.fillCircle(5.5, 24, 3);
+    g.fillRect(-5, 10, 2, 5);
+    g.fillRect(0, 10, 2, 5);
+    g.fillRect(3, 10, 2, 5);
   }
 
-  drawQuantumShip(g) {
-    // Main body
+  drawQuantumShipShop(g) {
     g.fillStyle(0x00ff88, 1);
     g.beginPath();
-    g.moveTo(-14, -18);
-    g.lineTo(0, -26);
-    g.lineTo(14, -18);
-    g.lineTo(17, 10);
-    g.lineTo(0, 20);
-    g.lineTo(-17, 10);
+    g.moveTo(-12, -14);
+    g.lineTo(0, -20);
+    g.lineTo(12, -14);
+    g.lineTo(14, 6);
+    g.lineTo(0, 12);
+    g.lineTo(-14, 6);
     g.closePath();
     g.fillPath();
-
-    // Outline
     g.lineStyle(2, 0x00ffaa, 1);
     g.strokePath();
 
-    // Energy rings
-    g.lineStyle(2, 0x00ffaa, 0.6);
-    g.strokeCircle(0, 0, 18);
-    g.strokeCircle(0, 0, 12);
-
-    // Quantum core
+    g.lineStyle(1, 0x00ffaa, 0.4);
+    g.strokeCircle(0, 0, 14);
     g.fillStyle(0x00ffff, 1);
-    g.fillCircle(0, -12, 4);
-    g.lineStyle(2, 0xffffff, 0.8);
-    g.strokeCircle(0, -12, 4);
-
-    // Cockpit
-    g.fillStyle(0xffffff, 0.7);
-    g.fillCircle(0, -12, 2);
-
-    // Main engine with quantum effect
-    g.fillStyle(0x00ff88, 1);
+    g.fillCircle(0, -10, 3);
+    g.fillStyle(0xff6600, 1);
     g.beginPath();
-    g.moveTo(-7, 18);
-    g.lineTo(7, 18);
-    g.lineTo(5, 24);
-    g.lineTo(-5, 24);
+    g.moveTo(-5, 12);
+    g.lineTo(5, 12);
+    g.lineTo(3, 16);
+    g.lineTo(-3, 16);
     g.closePath();
     g.fillPath();
+  }
 
-    g.fillStyle(0x00ffaa, 0.8);
-    g.fillCircle(0, 24, 2);
+  drawShieldGraphic(x, y, visibility) {
+    const graphics = this.make.graphics({ x, y, add: true });
+    graphics.setDepth(8);
+    graphics.setScale(0.7);
+
+    // Shield rings
+    graphics.lineStyle(3, 0x00ff88, 1);
+    graphics.strokeCircle(0, 0, 18);
+    graphics.lineStyle(2, 0x00ff88, 0.7);
+    graphics.strokeCircle(0, 0, 12);
+    graphics.lineStyle(1, 0x00ff88, 0.4);
+    graphics.strokeCircle(0, 0, 6);
+
+    // Center glow
+    graphics.fillStyle(0x00ffff, 0.6);
+    graphics.fillCircle(0, 0, 4);
   }
 
   purchaseShip(shipIndex, cost, shipName) {
@@ -427,7 +449,6 @@ export class MenuScene extends Phaser.Scene {
       localStorage.setItem('cosmicRunnerCoins', this.playerCoins.toString());
       localStorage.setItem('cosmicRunnerUnlockedShips', JSON.stringify(this.unlockedShips));
 
-      // Success message
       const msg = this.add.text(this.gameWidth / 2, 100, `✓ ${shipName} Unlocked!`, {
         fontSize: '28px',
         fill: '#00ff88',
@@ -442,8 +463,7 @@ export class MenuScene extends Phaser.Scene {
       this.tweens.add({
         targets: msg,
         alpha: 1,
-        duration: 200,
-        ease: 'Linear'
+        duration: 200
       });
 
       this.time.delayedCall(800, () => {
@@ -465,14 +485,69 @@ export class MenuScene extends Phaser.Scene {
         targets: msg,
         alpha: 1,
         duration: 200,
-        ease: 'Linear',
         onComplete: () => {
           this.tweens.add({
             targets: msg,
             alpha: 0,
             duration: 200,
             delay: 1500,
-            ease: 'Linear',
+            onComplete: () => msg.destroy()
+          });
+        }
+      });
+    }
+  }
+
+  purchaseShield(cost) {
+    if (this.playerCoins >= cost) {
+      this.playerCoins -= cost;
+      this.playerShields += 1;
+
+      localStorage.setItem('cosmicRunnerCoins', this.playerCoins.toString());
+      localStorage.setItem('cosmicRunnerPlayerShields', this.playerShields.toString());
+
+      const msg = this.add.text(this.gameWidth / 2, 100, `✓ Shield Purchased!`, {
+        fontSize: '28px',
+        fill: '#00ff88',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 2
+      });
+      msg.setOrigin(0.5);
+      msg.setDepth(30);
+      msg.setAlpha(0);
+
+      this.tweens.add({
+        targets: msg,
+        alpha: 1,
+        duration: 200
+      });
+
+      this.time.delayedCall(800, () => {
+        this.scene.restart();
+      });
+    } else {
+      const msg = this.add.text(this.gameWidth / 2, 100, '✗ Not Enough Coins!', {
+        fontSize: '28px',
+        fill: '#ff3333',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 2
+      });
+      msg.setOrigin(0.5);
+      msg.setDepth(30);
+      msg.setAlpha(0);
+
+      this.tweens.add({
+        targets: msg,
+        alpha: 1,
+        duration: 200,
+        onComplete: () => {
+          this.tweens.add({
+            targets: msg,
+            alpha: 0,
+            duration: 200,
+            delay: 1500,
             onComplete: () => msg.destroy()
           });
         }
@@ -501,6 +576,11 @@ export class MenuScene extends Phaser.Scene {
 
   getPlayerCoins() {
     const stored = localStorage.getItem('cosmicRunnerCoins');
+    return stored ? parseInt(stored) : 0;
+  }
+
+  getPlayerShields() {
+    const stored = localStorage.getItem('cosmicRunnerPlayerShields');
     return stored ? parseInt(stored) : 0;
   }
 }

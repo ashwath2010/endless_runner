@@ -22,6 +22,9 @@ export class GameScene extends Phaser.Scene {
     this.gameActive = true;
     this.difficultyMultiplier = 1;
     
+    // Initialize starting coins
+    this.initializeStartingCoins();
+    
     // Get unlocked ships
     this.unlockedShips = this.getUnlockedShips();
     this.currentShipDesign = 0;
@@ -70,13 +73,33 @@ export class GameScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-LEFT', () => this.moveLeft());
     this.input.keyboard.on('keydown-RIGHT', () => this.moveRight());
     
+    // Double-click/tap to use shield
+    let lastSpaceTime = 0;
+    let lastTapTime = 0;
+    
+    this.input.keyboard.on('keydown-SPACE', () => {
+      const now = this.time.now;
+      if (now - lastSpaceTime < 300) {
+        this.activateStoredShield();
+      }
+      lastSpaceTime = now;
+    });
+    
     // Touch input
     this.touchStartX = 0;
     this.touchStartY = 0;
+    this.touchCount = 0;
     
     this.input.on('pointerdown', (pointer) => {
       this.touchStartX = pointer.x;
       this.touchStartY = pointer.y;
+      
+      // Detect double tap for shield
+      const now = this.time.now;
+      if (now - lastTapTime < 300) {
+        this.activateStoredShield();
+      }
+      lastTapTime = now;
     });
     
     this.input.on('pointerup', (pointer) => {
@@ -93,6 +116,9 @@ export class GameScene extends Phaser.Scene {
       }
     });
     
+    // Stored shields
+    this.storedShields = this.getPlayerShields();
+    
     // UI
     this.scoreText = this.add.text(20, 20, 'Score: 0', {
       fontSize: '32px',
@@ -103,7 +129,16 @@ export class GameScene extends Phaser.Scene {
     });
     this.scoreText.setDepth(20);
     
-    this.powerupText = this.add.text(20, 60, '', {
+    this.shieldsText = this.add.text(20, 55, `Shields: ${this.storedShields}`, {
+      fontSize: '16px',
+      fill: '#00ff88',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 2
+    });
+    this.shieldsText.setDepth(20);
+    
+    this.powerupText = this.add.text(20, 80, '', {
       fontSize: '16px',
       fill: '#ffff00',
       fontStyle: 'bold',
@@ -418,12 +453,12 @@ export class GameScene extends Phaser.Scene {
     const cockpitGlow = this.add.circle(0, -16, 2, 0xffffff);
     cockpitGlow.setAlpha(0.8);
     
-    // Engines
-    const leftEngine = this.add.rectangle(-7, 15, 3, 8, 0xff6600);
-    const rightEngine = this.add.rectangle(4, 15, 3, 8, 0xff6600);
-    const engineGlow1 = this.add.circle(-5.5, 23, 3.5, 0xff9933);
+    // Engines with properly aligned gas tubes
+    const leftEngine = this.add.rectangle(-8, 16, 3, 6, 0xff6600);
+    const rightEngine = this.add.rectangle(8, 16, 3, 6, 0xff6600);
+    const engineGlow1 = this.add.circle(-8, 24, 3.5, 0xff9933);
     engineGlow1.setAlpha(0.7);
-    const engineGlow2 = this.add.circle(5.5, 23, 3.5, 0xff9933);
+    const engineGlow2 = this.add.circle(8, 24, 3.5, 0xff9933);
     engineGlow2.setAlpha(0.7);
     
     ship.add([body, leftWing, rightWing, cockpit, cockpitGlow, leftEngine, rightEngine, engineGlow1, engineGlow2]);
@@ -680,7 +715,7 @@ export class GameScene extends Phaser.Scene {
   endGame() {
     this.gameActive = false;
     this.gameOverText.setText(`GAME OVER`);
-    this.restartText.setText(`Score: ${this.score}\nPress SPACE to Menu`);
+    this.restartText.setText(`Score: ${this.score}`);
     this.gameOverText.setVisible(true);
     this.restartText.setVisible(true);
     
@@ -691,11 +726,31 @@ export class GameScene extends Phaser.Scene {
     const coinsEarned = Math.floor(this.score / 100);
     this.addCoins(coinsEarned);
     
-    this.input.keyboard.once('keydown-SPACE', () => {
+    // Create menu button
+    const menuBtn = this.add.rectangle(this.gameWidth / 2, this.gameHeight / 2 + 80, 200, 50, 0x00ff88);
+    menuBtn.setInteractive({ useHandCursor: true });
+    menuBtn.setDepth(35);
+
+    const menuText = this.add.text(this.gameWidth / 2, this.gameHeight / 2 + 80, 'BACK TO MENU', {
+      fontSize: '20px',
+      fill: '#000000',
+      fontStyle: 'bold'
+    });
+    menuText.setOrigin(0.5);
+    menuText.setDepth(35);
+    menuText.setInteractive({ useHandCursor: true });
+
+    const handleMenuClick = () => {
       this.cameras.main.setAlpha(1);
       this.scene.stop();
       this.scene.start('MenuScene');
-    });
+    };
+
+    menuBtn.on('pointerdown', handleMenuClick);
+    menuText.on('pointerdown', handleMenuClick);
+    
+    // Also allow SPACE key
+    this.input.keyboard.once('keydown-SPACE', handleMenuClick);
   }
 
   createStarfield() {
@@ -832,5 +887,29 @@ export class GameScene extends Phaser.Scene {
   
   getPlayerCoins() {
     return parseInt(localStorage.getItem('cosmicRunnerCoins')) || 0;
+  }
+  
+  getPlayerShields() {
+    return parseInt(localStorage.getItem('cosmicRunnerPlayerShields')) || 0;
+  }
+  
+  initializeStartingCoins() {
+    const hasVisitedBefore = localStorage.getItem('cosmicRunnerVisited') === 'true';
+    if (!hasVisitedBefore) {
+      // First time player - give 500 starting coins
+      localStorage.setItem('cosmicRunnerCoins', '500');
+      localStorage.setItem('cosmicRunnerVisited', 'true');
+    }
+  }
+  
+  activateStoredShield() {
+    if (this.storedShields > 0 && !this.powerups.shield) {
+      this.storedShields -= 1;
+      this.powerups.shield = true;
+      this.powerups.shieldDuration = 10000;
+      localStorage.setItem('cosmicRunnerPlayerShields', this.storedShields.toString());
+      this.shieldsText.setText(`Shields: ${this.storedShields}`);
+      this.showPowerupMessage('SHIELD ACTIVATED!', '#00ff00');
+    }
   }
 }
