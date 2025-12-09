@@ -93,8 +93,13 @@ export class MenuScene extends Phaser.Scene {
     }
 
     // CENTER/RIGHT COLUMN: SHOP
+    const shopTitleBg = this.add.rectangle(this.gameWidth / 2, contentY + 10, 250, 35, 0x00ff88);
+    shopTitleBg.setAlpha(0.08);
+    shopTitleBg.setStrokeStyle(2, 0x00ff88);
+    shopTitleBg.setDepth(5);
+
     const shopTitle = this.add.text(this.gameWidth / 2, contentY + 10, '⭐ SPACESHIP SHOP', {
-      fontSize: '18px',
+      fontSize: '16px',
       fill: '#00ff88',
       fontStyle: 'bold',
       stroke: '#000000',

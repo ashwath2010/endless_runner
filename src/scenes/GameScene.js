@@ -402,84 +402,116 @@ export class GameScene extends Phaser.Scene {
   }
   
   drawClassicFighter(ship, primaryColor, secondaryColor) {
-    const body = this.add.polygon(0, 0, [0, -22, 20, 10, 14, 20, -14, 20, -20, 10], primaryColor);
-    body.setStrokeStyle(2, secondaryColor);
+    // Main fuselage
+    const body = this.add.polygon(0, 0, [-15, -18, 0, -28, 15, -18, 18, 12, 0, 20, -18, 12], 0x00d4ff);
+    body.setStrokeStyle(2, 0x00ffff);
     
-    const cockpit = this.add.circle(0, -12, 6, 0xffff00);
+    // Wings
+    const leftWing = this.add.polygon(-15, -8, [-28, -2, -22, 2], 0x0099ff);
+    leftWing.setStrokeStyle(1, 0x0099ff);
+    const rightWing = this.add.polygon(15, -8, [28, -2, 22, 2], 0x0099ff);
+    rightWing.setStrokeStyle(1, 0x0099ff);
+    
+    // Cockpit
+    const cockpit = this.add.circle(0, -16, 5, 0xffff00);
     cockpit.setStrokeStyle(2, 0xffaa00);
-    const cockpitGlow = this.add.circle(0, -12, 3, 0xffffff);
+    const cockpitGlow = this.add.circle(0, -16, 2, 0xffffff);
     cockpitGlow.setAlpha(0.8);
     
-    const leftWing = this.add.polygon(-15, 5, [-24, 5, -20, 8, -18, 6], 0x0099ff);
-    const rightWing = this.add.polygon(15, 5, [24, 5, 20, 8, 18, 6], 0x0099ff);
+    // Engines
+    const leftEngine = this.add.rectangle(-7, 15, 3, 8, 0xff6600);
+    const rightEngine = this.add.rectangle(4, 15, 3, 8, 0xff6600);
+    const engineGlow1 = this.add.circle(-5.5, 23, 3.5, 0xff9933);
+    engineGlow1.setAlpha(0.7);
+    const engineGlow2 = this.add.circle(5.5, 23, 3.5, 0xff9933);
+    engineGlow2.setAlpha(0.7);
     
-    const leftEngine = this.add.rectangle(-8, 18, 4, 8, 0xff6600);
-    const rightEngine = this.add.rectangle(8, 18, 4, 8, 0xff6600);
-    const engineGlow1 = this.add.circle(-8, 22, 4, 0xffaa00);
-    const engineGlow2 = this.add.circle(8, 22, 4, 0xffaa00);
-    engineGlow1.setAlpha(0.6);
-    engineGlow2.setAlpha(0.6);
-    
-    ship.add([body, leftWing, rightWing, cockpitGlow, cockpit, leftEngine, rightEngine, engineGlow1, engineGlow2]);
+    ship.add([body, leftWing, rightWing, cockpit, cockpitGlow, leftEngine, rightEngine, engineGlow1, engineGlow2]);
   }
   
   drawPhantomRacer(ship, primaryColor, secondaryColor) {
-    const body = this.add.polygon(0, 0, [0, -24, 18, -5, 16, 18, -16, 18, -18, -5], primaryColor);
-    body.setStrokeStyle(3, secondaryColor);
+    // Sleek body
+    const body = this.add.polygon(0, 0, [-12, -20, 0, -28, 12, -20, 16, 8, 0, 18, -16, 8], 0xff00ff);
+    body.setStrokeStyle(2, 0xff88ff);
     
-    const stripe = this.add.rectangle(0, 0, 6, 28, undefined, 0);
-    stripe.setStrokeStyle(2, secondaryColor);
+    // Central stripe
+    const stripe = this.add.line(0, -28, 0, 18, 0xff88ff);
+    stripe.setLineWidth(3);
     
-    const cockpit = this.add.circle(0, -15, 5, 0x00ffff);
-    cockpit.setStrokeStyle(2, 0x00ff88);
+    // Side intakes
+    const leftIntake = this.add.polygon(-12, -8, [-22, 0, -16, 2], 0x00ffff);
+    const rightIntake = this.add.polygon(12, -8, [22, 0, 16, 2], 0x00ffff);
     
-    const leftIntake = this.add.polygon(-14, -2, [-20, -4, -18, 2, -12, 0], 0x00ffff);
-    const rightIntake = this.add.polygon(14, -2, [20, -4, 18, 2, 12, 0], 0x00ffff);
+    // Cockpit
+    const cockpit = this.add.circle(0, -14, 4, 0x00ffff);
+    cockpit.setStrokeStyle(2, 0x00ffff);
     
-    const thruster = this.add.polygon(0, 20, [0, 18, 8, 24, 0, 26, -8, 24], 0xff6600);
+    // Thruster
+    const thruster = this.add.polygon(0, 18, [-8, 18, -5, 24, 5, 24, 8, 18], 0xff6600);
     
     ship.add([body, stripe, leftIntake, rightIntake, cockpit, thruster]);
   }
   
   drawHeavyBomber(ship, primaryColor, secondaryColor) {
-    const body = this.add.polygon(0, 0, [0, -20, 22, 8, 18, 22, -18, 22, -22, 8], primaryColor);
-    body.setStrokeStyle(3, secondaryColor);
+    // Heavy body
+    const body = this.add.polygon(0, 0, [-18, -15, 0, -26, 18, -15, 20, 14, 0, 22, -20, 14], 0xffaa00);
+    body.setStrokeStyle(2, 0xffdd00);
     
-    const cockpit = this.add.circle(0, -10, 7, 0xffff00);
-    cockpit.setStrokeStyle(2, 0xffaa00);
+    // Armor plating
+    const armor1 = this.add.line(-12, -8, -12, 12, 0xffdd00);
+    armor1.setLineWidth(1);
+    armor1.setAlpha(0.6);
+    const armor2 = this.add.line(12, -8, 12, 12, 0xffdd00);
+    armor2.setLineWidth(1);
+    armor2.setAlpha(0.6);
     
-    const armor1 = this.add.rectangle(-10, 5, 6, 12, undefined, 0);
-    armor1.setStrokeStyle(2, secondaryColor);
-    const armor2 = this.add.rectangle(10, 5, 6, 12, undefined, 0);
-    armor2.setStrokeStyle(2, secondaryColor);
+    // Cockpit
+    const cockpit = this.add.circle(0, -12, 5, 0xffff00);
+    cockpit.setStrokeStyle(2, 0xffdd00);
     
-    const weapon1 = this.add.rectangle(-12, 15, 5, 8, 0xff0000);
-    const weapon2 = this.add.rectangle(12, 15, 5, 8, 0xff0000);
+    // Weapon pods
+    const weapon1 = this.add.rectangle(-10, 8, 4, 8, 0xff3333);
+    const weapon2 = this.add.rectangle(6, 8, 4, 8, 0xff3333);
     
-    const engine1 = this.add.rectangle(-8, 20, 4, 6, 0xff6600);
-    const engine2 = this.add.rectangle(0, 20, 4, 6, 0xff6600);
-    const engine3 = this.add.rectangle(8, 20, 4, 6, 0xff6600);
+    // Triple engines
+    const engine1 = this.add.rectangle(-7, 17, 3, 7, 0xff6600);
+    const engine2 = this.add.rectangle(0, 17, 3, 7, 0xff6600);
+    const engine3 = this.add.rectangle(4, 17, 3, 7, 0xff6600);
+    const engineGlow1 = this.add.circle(-5.5, 24, 3, 0xff9933);
+    engineGlow1.setAlpha(0.7);
+    const engineGlow2 = this.add.circle(1.5, 24, 3, 0xff9933);
+    engineGlow2.setAlpha(0.7);
+    const engineGlow3 = this.add.circle(5.5, 24, 3, 0xff9933);
+    engineGlow3.setAlpha(0.7);
     
-    ship.add([body, armor1, armor2, cockpit, weapon1, weapon2, engine1, engine2, engine3]);
+    ship.add([body, armor1, armor2, cockpit, weapon1, weapon2, engine1, engine2, engine3, engineGlow1, engineGlow2, engineGlow3]);
   }
   
   drawQuantumShip(ship, primaryColor, secondaryColor) {
-    const body = this.add.polygon(0, 0, [0, -22, 16, -8, 18, 10, 12, 20, -12, 20, -18, 10, -16, -8], primaryColor);
-    body.setStrokeStyle(2, secondaryColor);
-    body.setAlpha(0.95);
+    // Main body
+    const body = this.add.polygon(0, 0, [-14, -18, 0, -26, 14, -18, 17, 10, 0, 20, -17, 10], 0x00ff88);
+    body.setStrokeStyle(2, 0x00ffaa);
     
-    const ring = this.add.circle(0, 0, 20, undefined, 0);
-    ring.setStrokeStyle(2, secondaryColor);
-    ring.setAlpha(0.5);
+    // Energy rings
+    const ring1 = this.add.circle(0, 0, 18, undefined, 0);
+    ring1.setStrokeStyle(2, 0x00ffaa);
+    ring1.setAlpha(0.6);
+    const ring2 = this.add.circle(0, 0, 12, undefined, 0);
+    ring2.setStrokeStyle(2, 0x00ffaa);
+    ring2.setAlpha(0.4);
     
-    const core = this.add.circle(0, -8, 4, 0x00ffff);
+    // Quantum core
+    const core = this.add.circle(0, -12, 4, 0x00ffff);
     core.setStrokeStyle(2, 0xffffff);
+    const coreGlow = this.add.circle(0, -12, 2, 0xffffff);
+    coreGlow.setAlpha(0.7);
     
-    const engine = this.add.circle(0, 18, 6, undefined, 0);
-    engine.setStrokeStyle(2, 0x00ff88);
-    const engineCore = this.add.circle(0, 18, 3, 0x00ff88);
+    // Main engine
+    const engine = this.add.polygon(0, 18, [-7, 18, -5, 24, 5, 24, 7, 18], 0x00ff88);
+    const engineGlow = this.add.circle(0, 24, 2, 0x00ffaa);
+    engineGlow.setAlpha(0.8);
     
-    ship.add([body, ring, core, engine, engineCore]);
+    ship.add([body, ring1, ring2, core, coreGlow, engine, engineGlow]);
   }
   
   createAdvancedRock(x, y) {
