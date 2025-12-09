@@ -224,12 +224,9 @@ export class MenuScene extends Phaser.Scene {
   }
 
   drawAdvancedShip(x, y, primaryColor, secondaryColor, isUnlocked) {
-    const container = this.add.container(x, y);
-    container.setDepth(8);
-    container.setAlpha(isUnlocked ? 1 : 0.6);
-
-    // Draw advanced spaceship
-    const graphics = this.make.graphics({ x, y, add: false });
+    const graphics = this.make.graphics({ x, y, add: true });
+    graphics.setDepth(8);
+    graphics.setAlpha(isUnlocked ? 1 : 0.6);
 
     // Main body
     graphics.fillStyle(primaryColor, 1);
@@ -273,8 +270,6 @@ export class MenuScene extends Phaser.Scene {
     graphics.fillStyle(0xff9933, 0.7);
     graphics.fillRect(-10, 26, 8, 4);
     graphics.fillRect(2, 26, 8, 4);
-
-    graphics.add(graphics);
   }
 
   purchaseShip(shipIndex, cost, shipName) {
