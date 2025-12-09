@@ -1,7 +1,7 @@
 {
-  "name": "endless-runner-game",
+  "name": "cosmic-runner",
   "version": "1.0.0",
-  "description": "A simple 2D endless runner arcade game",
+  "description": "An exciting 2D endless runner arcade game with spaceships, enemies, and powerups",
   "main": "index.js",
   "scripts": {
     "start": "webpack serve --mode development",
