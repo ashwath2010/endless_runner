@@ -24,10 +24,19 @@ export class GameScene extends Phaser.Scene {
     this.gameActive = true;
     this.difficultyMultiplier = 1;
     
+    // Spaceship design system
+    this.spaceshipDesigns = [
+      { name: 'Starter', cost: 0, color: 0x00d4ff, unlocked: true },
+      { name: 'Sleek', cost: 500, color: 0xff00ff, unlocked: false },
+      { name: 'Heavy', cost: 1000, color: 0xffaa00, unlocked: false },
+      { name: 'Phantom', cost: 2000, color: 0x00ff88, unlocked: false }
+    ];
+    this.currentShipDesign = 0;
+    
     // Player setup - Spaceship
     this.playerSize = 40;
     this.playerLane = 1; // 0: left, 1: center, 2: right
-    this.player = this.createSpaceship(this.getLaneX(1), this.gameHeight - 100);
+    this.player = this.createSpaceship(this.getLaneX(1), this.gameHeight - 100, this.currentShipDesign);
     this.player.setDepth(10);
     
     // Powerup system
@@ -45,6 +54,11 @@ export class GameScene extends Phaser.Scene {
     this.obstacleSpeed = 300;
     this.spawnRate = 1500; // ms between spawns
     this.spawnTimer = 0;
+    
+    // Enemy spaceships
+    this.enemies = [];
+    this.enemySpawnRate = 8000; // ms between spawns
+    this.enemySpawnTimer = 0;
     
     // Collectibles (bonus items)
     this.collectibles = [];
@@ -105,6 +119,17 @@ export class GameScene extends Phaser.Scene {
     });
     this.powerupText.setDepth(20);
     
+    this.shipDesignText = this.add.text(this.gameWidth - 200, 20, '', {
+      fontSize: '14px',
+      fill: '#00ff88',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 2
+    });
+    this.shipDesignText.setOrigin(1, 0);
+    this.shipDesignText.setDepth(20);
+    this.updateShipDesignDisplay();
+    
     // Shield visual indicator (proper sphere around spaceship)
     this.shieldGraphic = this.make.graphics({ x: 0, y: 0, add: true });
     this.shieldGraphic.setDepth(9);
@@ -162,6 +187,15 @@ export class GameScene extends Phaser.Scene {
         this.obstacleSpeed = Math.min(this.obstacleSpeed + 30, 600);
         this.spawnRate = Math.max(this.spawnRate - 50, 800);
       }
+    }
+    
+    // Spawn enemy spaceships
+    this.enemySpawnTimer += delta;
+    if (this.enemySpawnTimer >= this.enemySpawnRate) {
+      if (Phaser.Math.Between(0, 100) > 40) { // 60% chance
+        this.spawnEnemySpaceship();
+      }
+      this.enemySpawnTimer = 0;
     }
     
     // Spawn collectibles
@@ -223,7 +257,6 @@ export class GameScene extends Phaser.Scene {
           obstacle.destroy();
           this.obstacles.splice(i, 1);
           this.powerups.shield = false;
-          this.shieldIndicator.setVisible(false);
         } else {
           this.endGame();
           return;
@@ -235,6 +268,52 @@ export class GameScene extends Phaser.Scene {
         obstacle.destroy();
         this.obstacles.splice(i, 1);
         this.score += 10;
+        this.scoreText.setText('Score: ' + this.score);
+      }
+    }
+    
+    // Update enemy spaceships
+    for (let i = this.enemies.length - 1; i >= 0; i--) {
+      const enemy = this.enemies[i];
+      enemy.y += (this.obstacleSpeed * this.difficultyMultiplier) * delta / 1000;
+      
+      // Enemy shoots randomly
+      if (Phaser.Math.Between(0, 100) > 95) {
+        this.enemyShoot(enemy);
+      }
+
+      // Check if bullets hit enemy
+      for (let j = this.bullets.length - 1; j >= 0; j--) {
+        const bullet = this.bullets[j];
+        if (this.checkCollision(bullet, enemy, 25)) {
+          enemy.destroy();
+          this.enemies.splice(i, 1);
+          bullet.destroy();
+          this.bullets.splice(j, 1);
+          this.score += 100; // Big reward for destroying enemies
+          this.scoreText.setText('Score: ' + this.score);
+          this.showPowerupMessage('ENEMY DESTROYED!', '#ff00ff');
+          break;
+        }
+      }
+
+      // Check collision with player
+      if (this.checkCollision(this.player, enemy, 35)) {
+        if (this.powerups.shield) {
+          enemy.destroy();
+          this.enemies.splice(i, 1);
+          this.powerups.shield = false;
+        } else {
+          this.endGame();
+          return;
+        }
+      }
+
+      // Remove enemy if off-screen
+      if (enemy.y > this.gameHeight) {
+        enemy.destroy();
+        this.enemies.splice(i, 1);
+        this.score += 50; // Reward for surviving enemy encounter
         this.scoreText.setText('Score: ' + this.score);
       }
     }
@@ -507,7 +586,6 @@ export class GameScene extends Phaser.Scene {
     if (type === 'shield') {
       this.powerups.shield = true;
       this.powerups.shieldDuration = 10000; // 10 seconds
-      this.shieldIndicator.setVisible(true);
       this.showPowerupMessage('SHIELD ACTIVATED!', '#00ff00');
     } else if (type === 'guns') {
       this.powerups.guns = true;
@@ -521,7 +599,6 @@ export class GameScene extends Phaser.Scene {
       this.powerups.shieldDuration -= delta;
       if (this.powerups.shieldDuration <= 0) {
         this.powerups.shield = false;
-        this.shieldIndicator.setVisible(false);
       }
     }
     
@@ -629,5 +706,142 @@ export class GameScene extends Phaser.Scene {
     } else {
       this.shieldGraphic.setVisible(false);
     }
+  }
+  
+  spawnEnemySpaceship() {
+    const lanePositions = this.getLanePositions();
+    const lane = Phaser.Math.Between(0, 2);
+    const enemy = this.createEnemySpaceship(lanePositions[lane], -50);
+    this.enemies.push(enemy);
+  }
+  
+  createEnemySpaceship(x, y) {
+    const enemy = this.add.container(x, y);
+    
+    // Enemy ship design (red/hostile colors)
+    const bodyPoints = [0, 20, 18, -10, 12, -18, -12, -18, -18, -10];
+    const body = this.add.polygon(0, 0, bodyPoints, 0xff3333);
+    body.setStrokeStyle(2, 0xff0000);
+    
+    // Hostile cockpit
+    const cockpit = this.add.circle(0, 8, 5, 0xff0000);
+    cockpit.setStrokeStyle(2, 0xffaa00);
+    
+    // Enemy wings
+    const leftWing = this.add.triangle(-12, -8, -18, -8, -15, -12, -12, -8, 0xcc0000);
+    const rightWing = this.add.triangle(12, -8, 18, -8, 15, -12, 12, -8, 0xcc0000);
+    leftWing.setStrokeStyle(1, 0xff0000);
+    rightWing.setStrokeStyle(1, 0xff0000);
+    
+    // Enemy weapons (pointed parts)
+    const weapon1 = this.add.triangle(0, 15, -6, 20, 0, 18, 0x00ff00);
+    const weapon2 = this.add.triangle(0, 15, 6, 20, 0, 18, 0x00ff00);
+    
+    enemy.add([body, leftWing, rightWing, cockpit, weapon1, weapon2]);
+    enemy.setDepth(8);
+    enemy.isEnemy = true;
+    return enemy;
+  }
+  
+  enemyShoot(enemy) {
+    const bulletX = enemy.x;
+    const bulletY = enemy.y + 20;
+    
+    const bullet = this.add.rectangle(bulletX, bulletY, 4, 12, 0xff3333);
+    bullet.setStrokeStyle(1, 0xff0000);
+    bullet.setDepth(8);
+    bullet.isEnemyBullet = true;
+    bullet.velocityY = 300;
+  }
+  
+  updateShipDesignDisplay() {
+    const design = this.spaceshipDesigns[this.currentShipDesign];
+    const nextDesign = this.spaceshipDesigns[this.currentShipDesign + 1];
+    
+    let displayText = `Ship: ${design.name}`;
+    if (nextDesign && !nextDesign.unlocked) {
+      displayText += ` | Next: ${nextDesign.name} (${nextDesign.cost}pts)`;
+    }
+    this.shipDesignText.setText(displayText);
+  }
+  
+  createSpaceship(x, y, designIndex = 0) {
+    const design = this.spaceshipDesigns[designIndex];
+    const ship = this.add.container(x, y);
+    
+    if (designIndex === 0) {
+      // Starter design
+      const bodyPoints = [0, -20, 18, 10, 12, 18, -12, 18, -18, 10];
+      const body = this.add.polygon(0, 0, bodyPoints, design.color);
+      body.setStrokeStyle(2, 0x00ffff);
+      
+      const cockpit = this.add.circle(0, -8, 5, 0xffff00);
+      cockpit.setStrokeStyle(2, 0xffaa00);
+      
+      const cockpitGlow = this.add.circle(0, -8, 3, 0xffff88);
+      
+      const leftWing = this.add.triangle(-12, 8, -18, 8, -15, 12, -12, 8, 0x0099ff);
+      const rightWing = this.add.triangle(12, 8, 18, 8, 15, 12, 12, 8, 0x0099ff);
+      leftWing.setStrokeStyle(1, 0x00ffff);
+      rightWing.setStrokeStyle(1, 0x00ffff);
+      
+      const flame = this.createFlame();
+      flame.name = 'flame';
+      
+      ship.add([body, leftWing, rightWing, cockpitGlow, cockpit, flame]);
+    } else if (designIndex === 1) {
+      // Sleek design
+      const bodyPoints = [0, -22, 16, 8, 10, 20, -10, 20, -16, 8];
+      const body = this.add.polygon(0, 0, bodyPoints, design.color);
+      body.setStrokeStyle(3, 0xff00ff);
+      
+      const cockpit = this.add.circle(0, -10, 4, 0xffff00);
+      const cockpitGlow = this.add.circle(0, -10, 2, 0xffffff);
+      
+      const stripe = this.add.rectangle(0, 0, 8, 30, undefined, 0);
+      stripe.setStrokeStyle(2, 0xff00ff);
+      
+      const flame = this.createFlame();
+      flame.setScale(1.1);
+      
+      ship.add([body, stripe, cockpitGlow, cockpit, flame]);
+    } else if (designIndex === 2) {
+      // Heavy design
+      const bodyPoints = [0, -18, 20, 12, 14, 20, -14, 20, -20, 12];
+      const body = this.add.polygon(0, 0, bodyPoints, design.color);
+      body.setStrokeStyle(3, 0xffaa00);
+      
+      const cockpit = this.add.circle(0, -6, 6, 0xffff00);
+      const armor = this.add.rectangle(0, 5, 18, 12, undefined, 0);
+      armor.setStrokeStyle(2, 0xffaa00);
+      
+      const leftWeapon = this.add.rectangle(-10, 0, 4, 8, 0xff6600);
+      const rightWeapon = this.add.rectangle(10, 0, 4, 8, 0xff6600);
+      
+      const flame = this.createFlame();
+      flame.setScale(1.2);
+      
+      ship.add([body, armor, cockpit, leftWeapon, rightWeapon, flame]);
+    } else if (designIndex === 3) {
+      // Phantom design
+      const bodyPoints = [0, -20, 16, 5, 12, 18, 0, 20, -12, 18, -16, 5];
+      const body = this.add.polygon(0, 0, bodyPoints, design.color);
+      body.setStrokeStyle(2, 0x00ff88);
+      body.setAlpha(0.9);
+      
+      const cockpit = this.add.circle(0, -8, 5, 0x00ffff);
+      const aura = this.add.circle(0, 0, 25, undefined, 0);
+      aura.setStrokeStyle(1, 0x00ff88);
+      aura.setAlpha(0.4);
+      
+      const flame = this.createFlame();
+      flame.setTint(0x00ff88);
+      
+      ship.add([body, aura, cockpit, flame]);
+    }
+    
+    ship.setDepth(10);
+    ship.designIndex = designIndex;
+    return ship;
   }
 }
